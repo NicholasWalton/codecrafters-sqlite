@@ -6,7 +6,7 @@ from dataclasses import dataclass
 # import sqlparse - available if you need it!
 
 @dataclass
-class DbInfo():
+class DbInfo:
     page_size: int = 0
     number_of_tables: int = 0
 
@@ -16,7 +16,7 @@ class DbInfo():
             self.page_size = int.from_bytes(database_file.read(2), byteorder="big")
             database_file.seek(100)  # Skip database header
             page_type = int.from_bytes(database_file.read(1), byteorder="big")
-            assert page_type == 13
+            assert page_type in (5, 13)
             first_freeblock = int.from_bytes(database_file.read(2), byteorder="big")
             assert first_freeblock == 0
             number_of_cells = int.from_bytes(database_file.read(2), byteorder="big")
