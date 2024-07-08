@@ -16,11 +16,14 @@ def test_number_of_tables():
     assert app.main.DbInfo("sample.db").number_of_tables == 3
 
 
-def test_far_too_many_tables(tmp_path):
-    expected_tables = 3
-    with sqlite3.connect(tmp_path / "test.db") as db:
+# Start at 1 because page_type is not 13 until we create a table!
+@pytest.mark.parametrize("expected_tables", range(1, 4))
+def test_far_too_many_tables(tmp_path, expected_tables):
+    # expected_tables = 3
+    tmp_db_path = tmp_path / "test.db"
+    with sqlite3.connect(tmp_db_path) as db:
         for i in range(expected_tables):
             db.execute("CREATE TABLE dummy%d (value int);" % i)
         db.commit()
         assert db.execute("SELECT count(*) FROM sqlite_schema").fetchall() == [(expected_tables,)]
-    assert app.main.DbInfo("sample.db").number_of_tables == expected_tables
+    assert app.main.DbInfo(tmp_db_path).number_of_tables == expected_tables
