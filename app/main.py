@@ -1,9 +1,38 @@
 import sys
 
 from dataclasses import dataclass
+from enum import IntEnum
+
+RIGHT_MOST_POINTER_OFFSET = 8
 
 
 # import sqlparse - available if you need it!
+
+def _read_next_integer(database_file, size):
+    return int.from_bytes(database_file.read(size), byteorder="big")
+
+
+class PageType(IntEnum):
+    INDEX_INTERIOR = 2
+    TABLE_INTERIOR = 5
+    INDEX_LEAF = 10
+    TABLE_LEAF = 13
+
+    def is_interior(self):
+        return self in (PageType.TABLE_INTERIOR, PageType.INDEX_INTERIOR)
+
+    def is_table(self):
+        return self in (PageType.TABLE_LEAF, PageType.TABLE_INTERIOR)
+
+    def is_leaf(self):
+        return not self.is_interior()
+
+    def is_index(self):
+        return not self.is_table()
+
+    def offset_of_cell_pointer_array(self):
+        return 12 if self.is_interior() else 8
+
 
 @dataclass
 class DbInfo:
@@ -13,38 +42,36 @@ class DbInfo:
     def __init__(self, database_file_path):
         with open(database_file_path, "rb") as database_file:
             database_file.seek(16)  # Skip the first 16 bytes of the header
-            self.page_size = int.from_bytes(database_file.read(2), byteorder="big")
-            self.number_of_tables = DbPage(database_file).number_of_cells # TODO: Wrong
+            self.page_size = _read_next_integer(database_file, 2)
+            self.number_of_tables = DbPage(database_file).number_of_cells  # TODO: Wrong
 
 
 @dataclass
 class DbPage:
     number_of_cells: int = 0
 
-    def __init__(self, database_file, offset = 100, page_size = 4096):
-        database_file.seek(offset)  # Skip database header
-        self.page_type = int.from_bytes(database_file.read(1), byteorder="big")
-        assert self.page_type in (5, 13)
-        first_freeblock = int.from_bytes(database_file.read(2), byteorder="big")
+    def __init__(self, database_file, page_offset=100, page_size=4096):
+        database_file.seek(page_offset)  # Skip database header
+        self.page_type = PageType(_read_next_integer(database_file, 1))
+        assert self.page_type.is_table()
+        first_freeblock = _read_next_integer(database_file, 2)
         assert first_freeblock == 0
-        self.number_of_cells = int.from_bytes(database_file.read(2), byteorder="big")
-        cell_content_area_start = int.from_bytes(database_file.read(2), byteorder="big") # TODO: special case
-        offset_of_cell_pointer_array = 12 if self.page_type in (2, 5) else 8
-        if self.page_type in (2, 5):
+        self.number_of_cells = _read_next_integer(database_file, 2)
+        cell_content_area_start = _read_next_integer(database_file, 2)  # TODO: special case
+        if self.page_type.is_interior():
             self.child = []
-            database_file.seek(offset + 8)
-            right_most_child_page = int.from_bytes(database_file.read(4), byteorder="big") - 1
-            database_file.seek(offset + offset_of_cell_pointer_array)
-            cell_offset = int.from_bytes(database_file.read(2), byteorder="big")
+            database_file.seek(page_offset + RIGHT_MOST_POINTER_OFFSET)
+            right_most_child_page = _read_next_integer(database_file, 4) - 1
+            database_file.seek(page_offset + self.page_type.offset_of_cell_pointer_array())
+            cell_offset = _read_next_integer(database_file, 2)
             database_file.seek(cell_content_area_start + cell_offset)
-            child_count = 0
-            for i in range(self.number_of_cells):
+            for child_count in range(self.number_of_cells):
                 page_of_child = int.from_bytes(database_file.read(-1), byteorder="big")
-                child_count += 1
                 offset_of_child = page_of_child * page_size
                 self.child.append(DbPage(database_file, offset_of_child))
-                database_file.seek(offset + offset_of_cell_pointer_array + 4 * child_count)
+                database_file.seek(page_offset + self.page_type.offset_of_cell_pointer_array() + 4 * child_count)
             self.child.append(DbPage(database_file, right_most_child_page * page_size))
+
 
 def main():
     database_file_path = sys.argv[1]

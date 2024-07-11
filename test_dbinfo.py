@@ -24,10 +24,15 @@ def test_number_of_tables_in_sample():
     131,  # cell count changes from 1 to 2
 ])
 def test_number_of_tables(tmp_path, expected_tables):
+    tmp_db_path = build_test_database(tmp_path, expected_tables)
+    assert DbInfo(tmp_db_path).number_of_tables == expected_tables
+
+
+def build_test_database(tmp_path, expected_tables):
     tmp_db_path = tmp_path / "test.db"
     with sqlite3.connect(tmp_db_path) as db:
         for i in range(expected_tables):
             db.execute("CREATE TABLE dummy%d (value int);" % i)
         db.commit()
         assert db.execute("SELECT count(*) FROM sqlite_schema").fetchall() == [(expected_tables,)]
-    assert DbInfo(tmp_db_path).number_of_tables == expected_tables
+    return tmp_db_path
