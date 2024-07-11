@@ -52,25 +52,29 @@ class DbPage:
 
     def __init__(self, database_file, page_offset=100, page_size=4096):
         database_file.seek(page_offset)  # Skip database header
-        self.page_type = PageType(_read_next_integer(database_file, 1))
+        page_type_integer = _read_next_integer(database_file, 1)
+        try:
+            self.page_type = PageType(page_type_integer)
+        except ValueError:
+            pass
         assert self.page_type.is_table()
         first_freeblock = _read_next_integer(database_file, 2)
-        assert first_freeblock == 0
+        # assert first_freeblock == 0
         self.number_of_cells = _read_next_integer(database_file, 2)
         cell_content_area_start = _read_next_integer(database_file, 2)  # TODO: special case
+        self.children = []
         if self.page_type.is_interior():
-            self.child = []
+            for child_count in range(self.number_of_cells):
+                database_file.seek(page_offset + self.page_type.offset_of_cell_pointer_array() + 2 * child_count)
+                cell_offset = _read_next_integer(database_file, 2)
+                database_file.seek(cell_offset)
+                page_of_child = _read_next_integer(database_file, 4) - 1
+                offset_of_child = page_of_child * page_size
+                self.children.append(DbPage(database_file, offset_of_child, page_size=page_size))
+
             database_file.seek(page_offset + RIGHT_MOST_POINTER_OFFSET)
             right_most_child_page = _read_next_integer(database_file, 4) - 1
-            database_file.seek(page_offset + self.page_type.offset_of_cell_pointer_array())
-            cell_offset = _read_next_integer(database_file, 2)
-            database_file.seek(cell_content_area_start + cell_offset)
-            for child_count in range(self.number_of_cells):
-                page_of_child = int.from_bytes(database_file.read(-1), byteorder="big")
-                offset_of_child = page_of_child * page_size
-                self.child.append(DbPage(database_file, offset_of_child))
-                database_file.seek(page_offset + self.page_type.offset_of_cell_pointer_array() + 4 * child_count)
-            self.child.append(DbPage(database_file, right_most_child_page * page_size))
+            self.children.append(DbPage(database_file, right_most_child_page * page_size, page_size=page_size))
 
 
 def main():
