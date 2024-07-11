@@ -43,7 +43,7 @@ class DbInfo:
         with open(database_file_path, "rb") as database_file:
             database_file.seek(16)  # Skip the first 16 bytes of the header
             self.page_size = _read_next_integer(database_file, 2)
-            self.number_of_tables = DbPage(database_file).number_of_cells  # TODO: Wrong
+            self.number_of_tables = DbPage(database_file, page_size=self.page_size).number_of_cells  # TODO: Wrong
 
 
 @dataclass
