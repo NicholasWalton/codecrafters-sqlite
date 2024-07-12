@@ -51,34 +51,36 @@ class DbInfo:
 @dataclass
 class DbPage:
     number_of_cells: int = 0
+    page_size: int = -1
 
     def __init__(self, database_file, page_number=1, page_size=4096):
-        page_content_cells_offset = page_size * (page_number - 1)
+        self.page_size = page_size
+        page_content_cells_offset = self.page_size * (page_number - 1)
         page_offset = 100 if page_number == 1 else page_content_cells_offset
+
         database_file.seek(page_offset)  # Skip database header
-        page_type_integer = _read_next_integer(database_file, 1)
-        try:
-            self.page_type = PageType(page_type_integer)
-        except ValueError:
-            raise
+        self.page_type = PageType(_read_next_integer(database_file, 1))
         assert self.page_type.is_table()
         first_freeblock = _read_next_integer(database_file, 2)
         # assert first_freeblock == 0
         self.number_of_cells = _read_next_integer(database_file, 2)
         cell_content_area_start = _read_next_integer(database_file, 2)  # TODO: special case
+
         self.children = []
         if self.page_type.is_interior():
             for cell in range(self.number_of_cells):
-                cell_pointer_location = CELL_POINTER_SIZE * cell + self.page_type.cell_pointer_array_offset() + page_offset
+                cell_pointer_location = cell * CELL_POINTER_SIZE + self.page_type.cell_pointer_array_offset() + page_offset
                 database_file.seek(cell_pointer_location)
                 cell_offset = _read_next_integer(database_file, CELL_POINTER_SIZE)
-                database_file.seek(page_content_cells_offset + cell_offset)
-                child_page_number = _read_next_integer(database_file, 4)
-                self.children.append(DbPage(database_file, child_page_number, page_size=page_size))
+                self._add_child_at(cell_offset + page_content_cells_offset, database_file)
 
-            database_file.seek(page_offset + RIGHT_MOST_POINTER_OFFSET)
-            right_most_child_page_number = _read_next_integer(database_file, 4)
-            self.children.append(DbPage(database_file, right_most_child_page_number, page_size=page_size))
+            self._add_child_at(page_offset + RIGHT_MOST_POINTER_OFFSET, database_file)
+
+    def _add_child_at(self, child_page_number_location, database_file):
+        database_file.seek(child_page_number_location)
+        child_page_number = _read_next_integer(database_file, 4)
+        child_page = DbPage(database_file, child_page_number, page_size=self.page_size)
+        self.children.append(child_page)
 
 
 def main():
