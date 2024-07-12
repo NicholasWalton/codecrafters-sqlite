@@ -1,13 +1,10 @@
 import pytest
-
-from app.main import DbPage
+from app.main import DbPage, MIN_PAGE_SIZE
 
 from test_dbinfo import build_test_database
 
 TABLE_INTERIOR = 5
 TABLE_LEAF = 13
-
-MIN_PAGE_SIZE = 512
 
 
 def build_sqlite_schema_table(expected_tables, tmp_path):

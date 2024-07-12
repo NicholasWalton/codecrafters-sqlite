@@ -1,14 +1,12 @@
 import sys
-
 from dataclasses import dataclass
 from enum import IntEnum
 
-CELL_POINTER_SIZE = 2
-
-RIGHT_MOST_POINTER_OFFSET = 8
-
-
 # import sqlparse - available if you need it!
+
+CELL_POINTER_SIZE = 2
+MIN_PAGE_SIZE = 512
+
 
 def _read_next_integer(database_file, size):
     return int.from_bytes(database_file.read(size), byteorder="big")
@@ -55,6 +53,8 @@ class DbPage:
     child_rows: int = 0
     page_size: int = -1
 
+    RIGHT_MOST_POINTER_OFFSET = 8
+
     def __init__(self, database_file, page_number=1, page_size=4096):
         self.page_size = page_size
         page_content_cells_offset = self.page_size * (page_number - 1)
@@ -78,7 +78,7 @@ class DbPage:
                 cell_offset = _read_next_integer(database_file, CELL_POINTER_SIZE)
                 self._add_child_at(cell_offset + page_content_cells_offset, database_file)
 
-            self._add_child_at(page_offset + RIGHT_MOST_POINTER_OFFSET, database_file)
+            self._add_child_at(page_offset + DbPage.RIGHT_MOST_POINTER_OFFSET, database_file)
 
     def _add_child_at(self, child_page_number_location, database_file):
         database_file.seek(child_page_number_location)
