@@ -1,7 +1,7 @@
+import sqlite3
+
 import pytest
 from app.main import DbPage, MIN_PAGE_SIZE
-
-from test_dbinfo import build_test_database
 
 TABLE_INTERIOR = 5
 TABLE_LEAF = 13
@@ -12,6 +12,17 @@ def build_sqlite_schema_table(expected_tables, tmp_path):
     with open(tmp_db_path, "rb") as database_file:
         page_one = DbPage(database_file, page_size=MIN_PAGE_SIZE)
     return page_one
+
+
+def build_test_database(tmp_path, expected_tables, page_size=MIN_PAGE_SIZE):
+    tmp_db_path = tmp_path / "test.db"
+    with sqlite3.connect(tmp_db_path) as db:
+        db.execute("PRAGMA page_size = %d;" % page_size)
+        for i in range(expected_tables):
+            db.execute("CREATE TABLE dummy%d (value int);" % i)
+        db.commit()
+        assert db.execute("SELECT count(*) FROM sqlite_schema").fetchall() == [(expected_tables,)]
+    return tmp_db_path
 
 
 def children_are_leaves(db_page: DbPage):

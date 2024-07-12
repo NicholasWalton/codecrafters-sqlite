@@ -4,6 +4,8 @@ from app.main import DbInfo, MIN_PAGE_SIZE
 
 import sqlite3
 
+from test_dbpage import build_test_database
+
 DEFAULT_PAGE_SIZE = 4096
 
 
@@ -41,12 +43,3 @@ def test_default_page_size(tmp_path):
     assert DbInfo(tmp_db_path).page_size == DEFAULT_PAGE_SIZE
 
 
-def build_test_database(tmp_path, expected_tables, page_size=MIN_PAGE_SIZE):
-    tmp_db_path = tmp_path / "test.db"
-    with sqlite3.connect(tmp_db_path) as db:
-        db.execute("PRAGMA page_size = %d;" % page_size)
-        for i in range(expected_tables):
-            db.execute("CREATE TABLE dummy%d (value int);" % i)
-        db.commit()
-        assert db.execute("SELECT count(*) FROM sqlite_schema").fetchall() == [(expected_tables,)]
-    return tmp_db_path
