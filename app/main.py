@@ -93,8 +93,9 @@ def main():
     command = sys.argv[2]
 
     if command == ".dbinfo":
-        page_size = DbInfo(database_file_path).page_size
-        print(f"database page size: {page_size}")
+        db_info = DbInfo(database_file_path)
+        print(f"database page size: {db_info.page_size}")
+        print(f"number of tables: {db_info.number_of_tables}")
     else:
         print(f"Invalid command: {command}")
 
