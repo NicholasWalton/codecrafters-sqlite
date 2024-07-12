@@ -45,12 +45,14 @@ class DbInfo:
         with open(database_file_path, "rb") as database_file:
             database_file.seek(16)  # Skip the first 16 bytes of the header
             self.page_size = _read_next_integer(database_file, 2)
-            self.number_of_tables = DbPage(database_file, page_size=self.page_size).number_of_cells  # TODO: Wrong
+            sqlite_schema_tree_root = DbPage(database_file, page_number=1, page_size=self.page_size)
+            self.number_of_tables = sqlite_schema_tree_root.child_rows
 
 
 @dataclass
 class DbPage:
     number_of_cells: int = 0
+    child_rows: int = 0
     page_size: int = -1
 
     def __init__(self, database_file, page_number=1, page_size=4096):
@@ -67,7 +69,9 @@ class DbPage:
         cell_content_area_start = _read_next_integer(database_file, 2)  # TODO: special case
 
         self.children = []
-        if self.page_type.is_interior():
+        if self.page_type.is_leaf():
+            self.child_rows = self.number_of_cells  # TODO: Close but doesn't handle overflow
+        elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_pointer_location = cell * CELL_POINTER_SIZE + self.page_type.cell_pointer_array_offset() + page_offset
                 database_file.seek(cell_pointer_location)
@@ -81,6 +85,7 @@ class DbPage:
         child_page_number = _read_next_integer(database_file, 4)
         child_page = DbPage(database_file, child_page_number, page_size=self.page_size)
         self.children.append(child_page)
+        self.child_rows += child_page.child_rows
 
 
 def main():

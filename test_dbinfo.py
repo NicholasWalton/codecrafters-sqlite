@@ -17,11 +17,12 @@ def test_number_of_tables_in_sample():
 
 
 @pytest.mark.parametrize("expected_tables", [
-    1, 2, 5, # Start at 1 because page_type is not in (5, 13) until we create a table!
-    6,  # page 1 cell count still equal to table count
+    1, 2, 5,  # Start at 1 because page_type is not in (5, 13) until we create a table!
+    6,     # page 1 cell count still equal to table count
     7, 8,  # cell count changes to 0
-    9,  # cell count changes to 1
-    # 131,  # TODO: find where cell count changes from 1 to 2
+    9,     # cell count changes to 1
+    17,    # cell count changes to 2
+    384,   # tree depth changes to 2
 ])
 def test_number_of_tables(tmp_path, expected_tables):
     tmp_db_path = build_test_database(tmp_path, expected_tables, page_size=512)
