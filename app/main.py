@@ -1,6 +1,7 @@
 import sys
 from dataclasses import dataclass
 from enum import IntEnum
+from mmap import ACCESS_READ, mmap
 
 PAGE_SIZE_OFFSET = 16
 
@@ -11,8 +12,7 @@ MIN_PAGE_SIZE = 512
 
 
 def _read_next_integer(database_file, offset, size):
-    database_file.seek(offset)
-    return int.from_bytes(database_file.read(size), byteorder="big")
+    return int.from_bytes(database_file[offset:offset + size], byteorder="big")
 
 
 class PageType(IntEnum):
@@ -44,8 +44,9 @@ class DbInfo:
 
     def __init__(self, database_file_path):
         with open(database_file_path, "rb") as database_file:
-            self.page_size = _read_next_integer(database_file, PAGE_SIZE_OFFSET, 2)
-            sqlite_schema_tree_root = DbPage(database_file, page_number=1, page_size=self.page_size)
+            database_mmap = mmap(database_file.fileno(), 0, access=ACCESS_READ)
+            self.page_size = _read_next_integer(database_mmap, PAGE_SIZE_OFFSET, 2)
+            sqlite_schema_tree_root = DbPage(database_mmap, page_number=1, page_size=self.page_size)
             self.number_of_tables = sqlite_schema_tree_root.child_rows
 
 

@@ -1,4 +1,5 @@
 import sqlite3
+from mmap import mmap, ACCESS_READ
 
 import pytest
 from app.main import DbPage, MIN_PAGE_SIZE
@@ -10,7 +11,8 @@ TABLE_LEAF = 13
 def build_sqlite_schema_table(expected_tables, tmp_path):
     tmp_db_path = build_test_database(tmp_path, expected_tables, page_size=MIN_PAGE_SIZE)
     with open(tmp_db_path, "rb") as database_file:
-        page_one = DbPage(database_file, page_size=MIN_PAGE_SIZE)
+        database_mmap = mmap(database_file.fileno(), 0, access=ACCESS_READ)
+        page_one = DbPage(database_mmap, page_size=MIN_PAGE_SIZE)
     return page_one
 
 
