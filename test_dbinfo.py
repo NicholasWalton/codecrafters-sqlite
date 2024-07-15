@@ -42,4 +42,6 @@ def test_default_page_size(tmp_path):
     tmp_db_path = build_test_database(tmp_path, 1, page_size=DEFAULT_PAGE_SIZE)
     assert DbInfo(tmp_db_path).page_size == DEFAULT_PAGE_SIZE
 
-
+def test_max_page_size(tmp_path):
+    tmp_db_path = build_test_database(tmp_path, 1, page_size=65536)
+    assert DbInfo(tmp_db_path).page_size == 65536

@@ -46,6 +46,7 @@ class DbInfo:
         with open(database_file_path, "rb") as database_file:
             database_mmap = mmap(database_file.fileno(), 0, access=ACCESS_READ)
             self.page_size = _read_next_integer(database_mmap, PAGE_SIZE_OFFSET, 2)
+            self.page_size = 65536 if self.page_size == 1 else self.page_size
             sqlite_schema_tree_root = DbPage(database_mmap, page_number=1, page_size=self.page_size)
             self.number_of_tables = sqlite_schema_tree_root.child_rows
 
@@ -68,7 +69,8 @@ class DbPage:
         first_freeblock = _read_next_integer(database_file, page_offset + 1, 2)
         # assert first_freeblock == 0
         self.number_of_cells = _read_next_integer(database_file, page_offset + 3, 2)
-        cell_content_area_start = _read_next_integer(database_file, page_offset + 5, 2)  # TODO: special case
+        cell_content_area_start = _read_next_integer(database_file, page_offset + 5, 2)
+        self.cell_content_area_start = 65536 if cell_content_area_start == 0 else cell_content_area_start
 
         self.children = []
         if self.page_type.is_leaf():
