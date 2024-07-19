@@ -13,7 +13,7 @@ from app.varint import huffman_decode
         ((0b1100_0000, 0b0000_0000), -16384),
 ))
 def test_15_bit_huffman(byte_tuple, expected):
-    assert huffman_decode(bytearray(byte_tuple)) == expected
+    assert huffman_decode(bytearray(byte_tuple), 2) == expected
 
 
 @pytest.mark.parametrize("byte_tuple,expected", (
@@ -35,7 +35,7 @@ def test_23_bit_huffman(byte_tuple, expected):
 def test_64_bit_huffman():
     assert huffman_decode(bytearray((0b1000_0001, 0b1000_0000, 0b1000_0000,
                                      0b1000_0000, 0b1000_0000, 0b1000_0000,
-                                     0b1000_0000, 0b1000_0000, 0b0000_0000)), 9) == 1 << 57
+                                     0b1000_0000, 0b1000_0000, 0b0000_0000))) == 1 << 57
 
 
 @pytest.mark.parametrize("huffman_length", range(2,10))

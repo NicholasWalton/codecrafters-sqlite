@@ -1,4 +1,4 @@
-def huffman_decode(varint, huffman_length = 2):
+def huffman_decode(varint, huffman_length = 9):
     unsigned = 0
 
     byte_index = 0
