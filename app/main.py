@@ -63,6 +63,7 @@ class DbPage:
 
     def __init__(self, database_file, page_number=1, page_size=4096):
         self.page_size = page_size
+        self.database_file = database_file
         page_content_cells_offset = self.page_size * (page_number - 1)
         page_offset = 100 if page_number == 1 else page_content_cells_offset
 
@@ -79,15 +80,20 @@ class DbPage:
             self.child_rows = self.number_of_cells  # TODO: Close but doesn't handle overflow
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
-                cell_pointer_location = cell * CELL_POINTER_SIZE + self.page_type.cell_pointer_array_offset() + page_offset
-                cell_offset = _read_next_integer(database_file, cell_pointer_location, CELL_POINTER_SIZE)
-                self._add_child_at(cell_offset + page_content_cells_offset, database_file)
+                cell_content_pointer = self.get_cell_content_pointer(page_content_cells_offset, page_offset, cell)
+                self._add_child_at(cell_content_pointer)
 
-            self._add_child_at(page_offset + DbPage.RIGHT_MOST_POINTER_OFFSET, database_file)
+            self._add_child_at(page_offset + DbPage.RIGHT_MOST_POINTER_OFFSET)
 
-    def _add_child_at(self, child_page_number_location, database_file):
-        child_page_number = _read_next_integer(database_file, child_page_number_location, 4)
-        child_page = DbPage(database_file, child_page_number, page_size=self.page_size)
+    def get_cell_content_pointer(self, page_content_cells_offset, page_offset, cell):
+        cell_pointer_location = cell * CELL_POINTER_SIZE + self.page_type.cell_pointer_array_offset() + page_offset
+        cell_offset = _read_next_integer(self.database_file, cell_pointer_location, CELL_POINTER_SIZE)
+        cell_content_pointer = cell_offset + page_content_cells_offset
+        return cell_content_pointer
+
+    def _add_child_at(self, child_page_number_location):
+        child_page_number = _read_next_integer(self.database_file, child_page_number_location, 4)
+        child_page = DbPage(self.database_file, child_page_number, page_size=self.page_size)
         self.children.append(child_page)
         self.child_rows += child_page.child_rows
 
