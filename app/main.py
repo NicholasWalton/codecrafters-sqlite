@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import IntEnum
 from mmap import ACCESS_READ, mmap
 
+DOT_DBINFO = ".dbinfo"
+
 PAGE_SIZE_OFFSET = 16
 
 # import sqlparse - available if you need it!
@@ -91,10 +93,14 @@ class DbPage:
 
 
 def main():
-    database_file_path = sys.argv[1]
-    command = sys.argv[2]
+    database_file_path = "sample.db"
+    if len(sys.argv) > 1:
+        database_file_path = sys.argv[1]
+    command = DOT_DBINFO
+    if len(sys.argv) > 2:
+        command = sys.argv[2]
 
-    if command == ".dbinfo":
+    if command == DOT_DBINFO:
         db_info = DbInfo(database_file_path)
         print(f"database page size: {db_info.page_size}")
         print(f"number of tables: {db_info.number_of_tables}")
