@@ -1,14 +1,17 @@
 import sqlite3
 
 import pytest
-from app.main import DbPage, MIN_PAGE_SIZE
+
+from app.main import MIN_PAGE_SIZE, DbPage
 
 TABLE_INTERIOR = 5
 TABLE_LEAF = 13
 
 
 def build_sqlite_schema_table(expected_tables):
-    database_mmap = build_in_memory_test_database(expected_tables, page_size=MIN_PAGE_SIZE)
+    database_mmap = build_in_memory_test_database(
+        expected_tables, page_size=MIN_PAGE_SIZE
+    )
     page_one = DbPage(database_mmap, page_size=MIN_PAGE_SIZE)
     return page_one
 

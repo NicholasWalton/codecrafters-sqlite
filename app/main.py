@@ -14,7 +14,7 @@ MIN_PAGE_SIZE = 512
 
 
 def _read_integer(database_file, offset, size):
-    return int.from_bytes(database_file[offset:offset + size], byteorder="big")
+    return int.from_bytes(database_file[offset : offset + size], byteorder="big")
 
 
 class PageType(IntEnum):
@@ -49,7 +49,9 @@ class DbInfo:
             database_mmap = mmap(database_file.fileno(), 0, access=ACCESS_READ)
             self.page_size = _read_integer(database_mmap, PAGE_SIZE_OFFSET, 2)
             self.page_size = 65536 if self.page_size == 1 else self.page_size
-            sqlite_schema_tree_root = DbPage(database_mmap, page_number=1, page_size=self.page_size)
+            sqlite_schema_tree_root = DbPage(
+                database_mmap, page_number=1, page_size=self.page_size
+            )
             self.number_of_tables = sqlite_schema_tree_root.child_rows
 
 
@@ -73,11 +75,15 @@ class DbPage:
         # assert first_freeblock == 0
         self.number_of_cells = self._read_integer(self.page_offset + 3, 2)
         cell_content_area_start = self._read_integer(self.page_offset + 5, 2)
-        self.cell_content_area_start = 65536 if cell_content_area_start == 0 else cell_content_area_start
+        self.cell_content_area_start = (
+            65536 if cell_content_area_start == 0 else cell_content_area_start
+        )
 
         self.children = []
         if self.page_type.is_leaf():
-            self.child_rows = self.number_of_cells  # TODO: Close but doesn't handle overflow
+            self.child_rows = (
+                self.number_of_cells  # TODO: Close but doesn't handle overflow
+            )
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_content_pointer = self.get_cell_content_pointer(cell)
@@ -86,7 +92,11 @@ class DbPage:
             self._add_child_at(self.page_offset + DbPage.RIGHT_MOST_POINTER_OFFSET)
 
     def get_cell_content_pointer(self, cell):
-        cell_pointer_location = cell * CELL_POINTER_SIZE + self.page_type.cell_pointer_array_offset() + self.page_offset
+        cell_pointer_location = (
+            cell * CELL_POINTER_SIZE
+            + self.page_type.cell_pointer_array_offset()
+            + self.page_offset
+        )
         cell_offset = self._read_integer(cell_pointer_location, CELL_POINTER_SIZE)
         cell_content_pointer = cell_offset + self.page_content_cells_offset
         return cell_content_pointer
@@ -96,7 +106,7 @@ class DbPage:
 
     def _add_child_at(self, child_page_number_location):
         child_page_number = self._read_integer(child_page_number_location, 4)
-        child_page = DbPage(self.database_file, child_page_number, page_size=self.page_size)
+        child_page = DbPage(self.database_file, child_page_number, self.page_size)
         self.children.append(child_page)
         self.child_rows += child_page.child_rows
 
@@ -117,5 +127,5 @@ def main():
         print(f"Invalid command: {command}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

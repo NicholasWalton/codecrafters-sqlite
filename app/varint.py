@@ -1,8 +1,9 @@
-def huffman_decode(varint, huffman_length = 9):
-    value, _ = varint_decode(varint, huffman_length)    
+def huffman_decode(varint, huffman_length=9):
+    value, _ = varint_decode(varint, huffman_length)
     return value
 
-def varint_decode(varint, huffman_length = 9):
+
+def varint_decode(varint, huffman_length=9):
     unsigned = 0
 
     byte_index = 0
