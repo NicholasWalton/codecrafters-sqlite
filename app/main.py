@@ -3,6 +3,9 @@ from dataclasses import dataclass
 from enum import IntEnum
 from mmap import ACCESS_READ, mmap
 
+from app import _read_integer
+from app.cells import TableLeafCell
+
 DOT_DBINFO = ".dbinfo"
 
 PAGE_SIZE_OFFSET = 16
@@ -11,10 +14,6 @@ PAGE_SIZE_OFFSET = 16
 
 CELL_POINTER_SIZE = 2
 MIN_PAGE_SIZE = 512
-
-
-def _read_integer(database_file, offset, size):
-    return int.from_bytes(database_file[offset: offset + size], byteorder="big")
 
 
 class PageType(IntEnum):
@@ -42,7 +41,6 @@ class PageType(IntEnum):
 @dataclass
 class DbInfo:
     page_size: int = 0
-    number_of_tables: int = 0
 
     def __init__(self, database_file_path):
         with open(database_file_path, "rb") as database_file:
@@ -52,19 +50,20 @@ class DbInfo:
             sqlite_schema_tree_root = DbPage(
                 database_mmap, page_number=1, page_size=self.page_size
             )
-            self.number_of_tables = sqlite_schema_tree_root.child_rows
+            self.table_names = sqlite_schema_tree_root.child_rows
 
 
 @dataclass
 class DbPage:
     number_of_cells: int = 0
-    child_rows: int = 0
     page_size: int = -1
 
     RIGHT_MOST_POINTER_OFFSET = 8
 
-    def __init__(self, database_file, page_number=1, page_size=4096):
+    def __init__(self, database_file, page_number=1, page_size=4096, usable_size=4096):
+        self.child_rows = []
         self.page_size = page_size
+        self.usable_size = usable_size
         self.database_file = database_file
         self.page_content_cells_offset = self.page_size * (page_number - 1)
         self.page_offset = 100 if page_number == 1 else self.page_content_cells_offset
@@ -82,15 +81,23 @@ class DbPage:
 
         self.children = []
         if self.page_type.is_leaf():
-            self.child_rows = (
-                self.number_of_cells  # TODO: Close but doesn't handle overflow
-            )
+            for cell in range(self.number_of_cells):
+                self.child_rows.append(self.get_table_name(cell))
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_content_pointer = self.get_cell_content_pointer(cell)
                 self._add_child_at(cell_content_pointer)
 
             self._add_child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
+
+    def get_table_name(self, cell_number):
+        cell = self.get_cell(cell_number)
+        # cell_slice, payload_size_length = cell
+
+        return cell.columns
+
+    def get_cell(self, cell_number):
+        return TableLeafCell(self.page, self.get_cell_content_pointer(cell_number), self.usable_size)
 
     def get_cell_content_pointer(self, cell):
         cell_pointer_location = (

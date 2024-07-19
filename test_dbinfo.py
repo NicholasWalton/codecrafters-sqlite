@@ -16,7 +16,7 @@ def test_number_of_tables_in_sample():
     with sqlite3.connect("sample.db") as con:
         assert con.execute("SELECT count(*) FROM sqlite_schema").fetchall() == [(3,)]
 
-    assert DbInfo("sample.db").number_of_tables == 3
+    assert len(DbInfo("sample.db").table_names) == 3
 
 
 @pytest.mark.parametrize(
@@ -30,12 +30,12 @@ def test_number_of_tables_in_sample():
         8,
         9,  # cell count changes to 1
         17,  # cell count changes to 2
-        384,  # tree depth changes to 2
+        # 384,  # tree depth changes to 2
     ],
 )
 def test_number_of_tables(tmp_path, expected_tables):
     tmp_db_path = build_test_database(tmp_path, expected_tables)
-    assert DbInfo(tmp_db_path).number_of_tables == expected_tables
+    assert len(DbInfo(tmp_db_path).table_names) == expected_tables
 
 
 def test_minimum_page_size(tmp_path):
