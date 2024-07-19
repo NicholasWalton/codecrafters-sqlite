@@ -1,6 +1,6 @@
 import pytest
 
-from app.varint import huffman_decode
+from app.varint import huffman_decode, varint_decode
 
 
 @pytest.mark.parametrize("byte_tuple,expected", (
@@ -45,4 +45,17 @@ def test_max_huffman(huffman_length):
 
 @pytest.mark.parametrize("huffman_length", range(2,10))
 def test_min_huffman(huffman_length):
-    assert huffman_decode(bytearray((0b1100_0000,) + (huffman_length - 2) * (0b1000_0000,) + (0b0000_0000,)), huffman_length) == -pow(2, 7 * huffman_length)
+    assert huffman_decode(min_varint(huffman_length), huffman_length) == -pow(2, 7 * huffman_length)
+
+@pytest.mark.parametrize("varint_length", range(2,10))
+def test_min_varint(varint_length):
+    _, length = varint_decode(min_varint(varint_length), varint_length)
+    assert length == varint_length
+
+def min_varint(huffman_length):
+    return bytearray((0b1100_0000,) + (huffman_length - 2) * (0b1000_0000,) + (0b0000_0000,))
+
+@pytest.mark.parametrize("varint_length", range(2,10))
+def test_zero_varint(varint_length):
+    _, length = varint_decode(bytearray((0b0000_0000,)), varint_length)
+    assert length == 1

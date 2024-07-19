@@ -1,4 +1,8 @@
 def huffman_decode(varint, huffman_length = 9):
+    value, _ = varint_decode(varint, huffman_length)    
+    return value
+
+def varint_decode(varint, huffman_length = 9):
     unsigned = 0
 
     byte_index = 0
@@ -11,8 +15,11 @@ def huffman_decode(varint, huffman_length = 9):
     huffman_bits = 7 * huffman_length + 1
     sign_bit = 1 << (huffman_bits - 1)
     if unsigned & sign_bit:
-        return unsigned - (sign_bit << 1)
-    return unsigned
+        value = unsigned - (sign_bit << 1)
+    else:
+        value = unsigned
+
+    return value, byte_index + 1
 
 
 def _high_bit(byte):
