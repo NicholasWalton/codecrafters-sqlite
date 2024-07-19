@@ -40,11 +40,11 @@ def create_tables(db, count, page_size):
 def children_are_leaves(db_page: DbPage):
     return all(child.page_type == TABLE_LEAF for child in db_page.children)
 
+
 @pytest.mark.parametrize("expected_tables", [1])
 def test_table_names(expected_tables):
     page_one = build_sqlite_schema_table(expected_tables)
-    print(page_one.child_rows[0])
-    assert page_one.child_rows == ['dummy0']
+    assert page_one.child_rows == [['table', 'dummy0', 'dummy0', 2, 'CREATE TABLE dummy0 (value int)']]
 
 
 @pytest.mark.parametrize("expected_tables", [6])

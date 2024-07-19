@@ -7,6 +7,7 @@ from app import _read_integer
 from app.cells import TableLeafCell
 
 DOT_DBINFO = ".dbinfo"
+DOT_TABLES = ".tables"
 
 PAGE_SIZE_OFFSET = 16
 
@@ -82,7 +83,7 @@ class DbPage:
         self.children = []
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
-                self.child_rows.append(self.get_table_name(cell))
+                self.child_rows.append(self._get_row(cell))
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_content_pointer = self.get_cell_content_pointer(cell)
@@ -90,14 +91,9 @@ class DbPage:
 
             self._add_child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
 
-    def get_table_name(self, cell_number):
-        cell = self.get_cell(cell_number)
-        # cell_slice, payload_size_length = cell
-
+    def _get_row(self, cell_number):
+        cell = TableLeafCell(self.page, self.get_cell_content_pointer(cell_number), self.usable_size)
         return cell.columns
-
-    def get_cell(self, cell_number):
-        return TableLeafCell(self.page, self.get_cell_content_pointer(cell_number), self.usable_size)
 
     def get_cell_content_pointer(self, cell):
         cell_pointer_location = (
@@ -118,10 +114,10 @@ class DbPage:
 
 
 def main():
-    database_file_path = "sample.db"
+    database_file_path = "../sample.db"
     if len(sys.argv) > 1:
         database_file_path = sys.argv[1]
-    command = DOT_DBINFO
+    command = DOT_TABLES
     if len(sys.argv) > 2:
         command = sys.argv[2]
 
@@ -129,6 +125,9 @@ def main():
         db_info = DbInfo(database_file_path)
         print(f"database page size: {db_info.page_size}")
         print(f"number of tables: {db_info.number_of_tables}")
+    if command == DOT_TABLES:
+        db_info = DbInfo(database_file_path)
+        print(" ".join(db_info.table_names))
     else:
         print(f"Invalid command: {command}")
 
