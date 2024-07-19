@@ -13,7 +13,7 @@ CELL_POINTER_SIZE = 2
 MIN_PAGE_SIZE = 512
 
 
-def _read_next_integer(database_file, offset, size):
+def _read_integer(database_file, offset, size):
     return int.from_bytes(database_file[offset:offset + size], byteorder="big")
 
 
@@ -47,7 +47,7 @@ class DbInfo:
     def __init__(self, database_file_path):
         with open(database_file_path, "rb") as database_file:
             database_mmap = mmap(database_file.fileno(), 0, access=ACCESS_READ)
-            self.page_size = _read_next_integer(database_mmap, PAGE_SIZE_OFFSET, 2)
+            self.page_size = _read_integer(database_mmap, PAGE_SIZE_OFFSET, 2)
             self.page_size = 65536 if self.page_size == 1 else self.page_size
             sqlite_schema_tree_root = DbPage(database_mmap, page_number=1, page_size=self.page_size)
             self.number_of_tables = sqlite_schema_tree_root.child_rows
@@ -67,12 +67,12 @@ class DbPage:
         self.page_content_cells_offset = self.page_size * (page_number - 1)
         self.page_offset = 100 if page_number == 1 else self.page_content_cells_offset
 
-        self.page_type = PageType(_read_next_integer(database_file, self.page_offset, 1))
+        self.page_type = PageType(self._read_integer(self.page_offset, 1))
         assert self.page_type.is_table()
-        first_freeblock = _read_next_integer(database_file, self.page_offset + 1, 2)
+        first_freeblock = self._read_integer(self.page_offset + 1, 2)
         # assert first_freeblock == 0
-        self.number_of_cells = _read_next_integer(database_file, self.page_offset + 3, 2)
-        cell_content_area_start = _read_next_integer(database_file, self.page_offset + 5, 2)
+        self.number_of_cells = self._read_integer(self.page_offset + 3, 2)
+        cell_content_area_start = self._read_integer(self.page_offset + 5, 2)
         self.cell_content_area_start = 65536 if cell_content_area_start == 0 else cell_content_area_start
 
         self.children = []
@@ -87,12 +87,15 @@ class DbPage:
 
     def get_cell_content_pointer(self, cell):
         cell_pointer_location = cell * CELL_POINTER_SIZE + self.page_type.cell_pointer_array_offset() + self.page_offset
-        cell_offset = _read_next_integer(self.database_file, cell_pointer_location, CELL_POINTER_SIZE)
+        cell_offset = self._read_integer(cell_pointer_location, CELL_POINTER_SIZE)
         cell_content_pointer = cell_offset + self.page_content_cells_offset
         return cell_content_pointer
 
+    def _read_integer(self, cell_pointer_location, size):
+        return _read_integer(self.database_file, cell_pointer_location, size)
+
     def _add_child_at(self, child_page_number_location):
-        child_page_number = _read_next_integer(self.database_file, child_page_number_location, 4)
+        child_page_number = self._read_integer(child_page_number_location, 4)
         child_page = DbPage(self.database_file, child_page_number, page_size=self.page_size)
         self.children.append(child_page)
         self.child_rows += child_page.child_rows
