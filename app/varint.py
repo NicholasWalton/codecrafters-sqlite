@@ -1,6 +1,5 @@
-def huffman_decode(varint, huffman_length=9):
-    value, _ = varint_decode(varint, huffman_length)
-    return value
+def varint_at(bytearray_slice, offset):
+    return varint_decode(bytearray_slice[offset: offset + 9])
 
 
 def varint_decode(varint, huffman_length=9):
