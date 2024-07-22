@@ -1,0 +1,22 @@
+database page size:  4096
+write format:        1
+read format:         1
+reserved bytes:      0
+file change counter: 25
+database page count: 307
+freelist page count: 195
+schema cookie:       17
+schema format:       4
+default cache size:  0
+autovacuum top root: 0
+incremental vacuum:  0
+text encoding:       1 (utf8)
+user version:        0
+application id:      0
+software version:    3032003
+number of tables:    2
+number of indexes:   0
+number of triggers:  0
+number of views:     0
+schema size:         233
+data version         1

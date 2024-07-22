@@ -98,6 +98,9 @@ class DbPage:
         self.cell_content_area_start = (
             65536 if cell_content_area_start == 0 else cell_content_area_start
         )
+        cell_pointer_array = self.page[self.page_type.cell_pointer_array_offset():self.page_type.cell_pointer_array_offset()+2*self.number_of_cells]
+        unallocated = self.page[self.page_type.cell_pointer_array_offset()+2*self.number_of_cells:self.cell_content_area_start]
+        cell_content_area = self.page[self.cell_content_area_start:]
 
         self.children = []
         if self.page_type.is_leaf():
@@ -111,7 +114,16 @@ class DbPage:
             self._add_child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
 
     def _get_row(self, cell_number):
-        cell = TableLeafCell(self.page, self.get_cell_content_pointer(cell_number), self.usable_size)
+        # if self.page_offset == 20480 and cell_number >= 10:
+        #     pass
+        cell_pointer_location = (
+                cell_number * CELL_POINTER_SIZE
+                + self.page_type.cell_pointer_array_offset()
+        )
+
+        cell_offset = self._read_integer(cell_pointer_location, CELL_POINTER_SIZE)
+        cell_location = cell_offset + self.page_content_cells_offset - self.page_offset
+        cell = TableLeafCell(self.page, cell_location, self.usable_size)
         return cell.columns
 
     def get_cell_content_pointer(self, cell):
@@ -133,10 +145,10 @@ class DbPage:
 
 
 def main():
-    database_file_path = "../sample.db"
+    database_file_path = "../companies.db"
     if len(sys.argv) > 1:
         database_file_path = sys.argv[1]
-    command = DotCommands.DBINFO
+    command = "SELECT COUNT(*) FROM companies"
     if len(sys.argv) > 2:
         command = sys.argv[2]
 

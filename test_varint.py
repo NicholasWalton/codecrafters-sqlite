@@ -97,3 +97,14 @@ def test_zero_varint(varint_length):
     _, length = varint_decode(bytearray((0b0000_0000,)), varint_length)
     assert length == 1
 
+# @pytest.mark.parametrize("low_byte", range(0,127))
+# def test_problem_varint(low_byte):
+#     value, length = varint_decode(bytearray((0x81,low_byte,0xb5,ord('n'),0x0c)))
+#     assert length == 2
+#     assert value == 129 + low_byte
+#
+# @pytest.mark.parametrize("low_byte", range(0,127))
+# def test_ok_varint(low_byte):
+#     value, length = varint_decode(bytearray((0x80,low_byte,0xb5,ord('n'),0x0c)))
+#     assert length == 2
+#     assert value == low_byte
