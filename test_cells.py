@@ -10,8 +10,12 @@ def test_negative_value():
 
 
 def test_literal_zero():
-    assert cells._decode([0xff], 0, 8) == (0, 0)
+    assert cells._decode([], 0, 8) == (0, 0)
 
 
 def test_literal_one():
-    assert cells._decode([0xff], 0, 9) == (1, 0)
+    assert cells._decode([], 0, 9) == (1, 0)
+
+
+def test_null():
+    assert cells._decode([], 0, 0) == (None, 0)

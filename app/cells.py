@@ -29,19 +29,20 @@ class TableLeafCell:
 
 
 def _decode(record, current_location, serial_type_code):
-    if serial_type_code == 8:
-        return (0, 0)
-    elif serial_type_code == 9:
-        return (1, 0)
-    elif serial_type_code in [1, 2, 3, 4, 6]:
-        content = _read_integer(record, current_location, serial_type_code, signed=True)
-        content_size = serial_type_code
-    elif serial_type_code >= 13 and serial_type_code % 2 == 1:
-        string_length = (serial_type_code - 13) // 2
-        entry = record[current_location:current_location + string_length]
-        logging.debug(f'decoded [{entry}] with length {string_length}')
-        content = entry.decode()
-        content_size = string_length
-    else:
-        raise Exception(f"Unknown serial type code {serial_type_code}")
-    return content, content_size
+    match serial_type_code:
+        case 0:
+            return None, 0
+        case 8:
+            return 0, 0
+        case 9:
+            return 1, 0
+        case 1 | 2 | 3 | 4 | 6:
+            content = _read_integer(record, current_location, serial_type_code, signed=True)
+            return content, serial_type_code
+        case _:
+            if serial_type_code >= 13 and serial_type_code % 2 == 1:
+                string_length = (serial_type_code - 13) // 2
+                entry = record[current_location:current_location + string_length]
+                logging.debug(f'decoded [{entry}] with length {string_length}')
+                return entry.decode(), string_length
+    raise Exception(f"Unknown serial type code {serial_type_code}")
