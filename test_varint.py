@@ -96,3 +96,4 @@ def min_varint(huffman_length):
 def test_zero_varint(varint_length):
     _, length = varint_decode(bytearray((0b0000_0000,)), varint_length)
     assert length == 1
+

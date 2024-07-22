@@ -51,7 +51,15 @@ class DbInfo:
             sqlite_schema_tree_root = DbPage(
                 database_mmap, page_number=1, page_size=self.page_size
             )
-            self.table_names = sqlite_schema_tree_root.child_rows
+            self.table_names = extract_table_names(sqlite_schema_tree_root.child_rows)
+            self.number_of_tables = len(sqlite_schema_tree_root.child_rows)
+
+
+def extract_table_names(sqlite_schema):
+    return [name for type_, name, *_
+            in sqlite_schema
+            if type_ == 'table' and not name.startswith('sqlite_')
+            ]
 
 
 @dataclass
@@ -125,7 +133,7 @@ def main():
         db_info = DbInfo(database_file_path)
         print(f"database page size: {db_info.page_size}")
         print(f"number of tables: {db_info.number_of_tables}")
-    if command == DOT_TABLES:
+    elif command == DOT_TABLES:
         db_info = DbInfo(database_file_path)
         print(" ".join(db_info.table_names))
     else:

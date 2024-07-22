@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from app.main import MIN_PAGE_SIZE, DbInfo
+from app.main import MIN_PAGE_SIZE, DbInfo, extract_table_names
 from test_dbpage import build_test_database
 
 DEFAULT_PAGE_SIZE = 4096
@@ -12,11 +12,13 @@ def test_page_size():
     assert DbInfo("sample.db").page_size == DEFAULT_PAGE_SIZE
 
 
-def test_number_of_tables_in_sample():
+def test_tables_in_sample():
     with sqlite3.connect("sample.db") as con:
         assert con.execute("SELECT count(*) FROM sqlite_schema").fetchall() == [(3,)]
 
-    assert len(DbInfo("sample.db").table_names) == 3
+    db_info = DbInfo("sample.db")
+    assert db_info.number_of_tables == 3
+    assert db_info.table_names == ['apples', 'oranges']
 
 
 @pytest.mark.parametrize(
@@ -51,3 +53,12 @@ def test_default_page_size(tmp_path):
 def test_max_page_size(tmp_path):
     tmp_db_path = build_test_database(tmp_path, 1, page_size=65536)
     assert DbInfo(tmp_db_path).page_size == 65536
+
+
+def test_extract_table_names():
+    sqlite_schema = [['table', 'companies', 'companies', 2,
+                      'CREATE TABLE companies\n(...)'],
+                     ['table', 'sqlite_sequence', 'sqlite_sequence', 3, 'CREATE TABLE sqlite_sequence(name,seq)'],
+                     ['index', 'idx_companies_country', 'companies', 4,
+                      'CREATE INDEX idx_companies_country\n\ton companies (country)']]
+    assert extract_table_names(sqlite_schema) == ['companies']
