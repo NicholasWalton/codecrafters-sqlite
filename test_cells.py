@@ -1,21 +1,20 @@
+import pytest
+
 from app import cells
 
 
-def test_positive_value():
-    assert cells._decode([0x7f], 0, 1) == (127, 1)
+@pytest.mark.parametrize("record,serial_type_code,expected_value,expected_content_size", (
+        pytest.param([0x7f], 1, 127, 1, id="positive_value"),
+        pytest.param([0xff], 1, -1, 1, id="negative_value"),
+))
+def test_decode_integer(record, serial_type_code, expected_value, expected_content_size):
+    assert cells._decode(record, 0, serial_type_code) == (expected_value, expected_content_size)
 
 
-def test_negative_value():
-    assert cells._decode([0xff], 0, 1) == (-1, 1)
-
-
-def test_literal_zero():
-    assert cells._decode([], 0, 8) == (0, 0)
-
-
-def test_literal_one():
-    assert cells._decode([], 0, 9) == (1, 0)
-
-
-def test_null():
-    assert cells._decode([], 0, 0) == (None, 0)
+@pytest.mark.parametrize("serial_type_code,expected_value", (
+        pytest.param(8, 0, id="literal_zero"),
+        pytest.param(9, 1, id="literal_one"),
+        pytest.param(0, None, id="literal_null")
+))
+def test_decode_literal(serial_type_code, expected_value):
+    assert cells._decode([], 0, serial_type_code) == (expected_value, 0)
