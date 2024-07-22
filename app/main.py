@@ -1,13 +1,17 @@
+import re
 import sys
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from mmap import ACCESS_READ, mmap
 
 from app import _read_integer
 from app.cells import TableLeafCell
 
-DOT_DBINFO = ".dbinfo"
-DOT_TABLES = ".tables"
+
+class DotCommands(StrEnum):
+    DBINFO = ".dbinfo"
+    TABLES = ".tables"
+
 
 PAGE_SIZE_OFFSET = 16
 
@@ -45,14 +49,21 @@ class DbInfo:
 
     def __init__(self, database_file_path):
         with open(database_file_path, "rb") as database_file:
-            database_mmap = mmap(database_file.fileno(), 0, access=ACCESS_READ)
-            self.page_size = _read_integer(database_mmap, PAGE_SIZE_OFFSET, 2)
+            self.database_mmap = mmap(database_file.fileno(), 0, access=ACCESS_READ)
+            self.page_size = _read_integer(self.database_mmap, PAGE_SIZE_OFFSET, 2)
             self.page_size = 65536 if self.page_size == 1 else self.page_size
-            sqlite_schema_tree_root = DbPage(
-                database_mmap, page_number=1, page_size=self.page_size
-            )
-            self.table_names = extract_table_names(sqlite_schema_tree_root.child_rows)
-            self.number_of_tables = len(sqlite_schema_tree_root.child_rows)
+            sqlite_schema_tree_root = self._table(1)
+            self.sqlite_schema = sqlite_schema_tree_root.child_rows
+            self.table_names = extract_table_names(self.sqlite_schema)
+            self.number_of_tables = len(self.sqlite_schema)
+
+    def find_table(self, requested_name):
+        for (type_, name, table_name, rootpage, sql) in self.sqlite_schema:
+            if type_ == 'table' and name.casefold() == requested_name.casefold():
+                return self._table(rootpage)
+
+    def _table(self, rootpage):
+        return DbPage(self.database_mmap, page_number=rootpage, page_size=self.page_size)
 
 
 def extract_table_names(sqlite_schema):
@@ -125,19 +136,25 @@ def main():
     database_file_path = "../sample.db"
     if len(sys.argv) > 1:
         database_file_path = sys.argv[1]
-    command = DOT_TABLES
+    command = DotCommands.DBINFO
     if len(sys.argv) > 2:
         command = sys.argv[2]
 
-    if command == DOT_DBINFO:
-        db_info = DbInfo(database_file_path)
-        print(f"database page size: {db_info.page_size}")
-        print(f"number of tables: {db_info.number_of_tables}")
-    elif command == DOT_TABLES:
-        db_info = DbInfo(database_file_path)
-        print(" ".join(db_info.table_names))
-    else:
-        print(f"Invalid command: {command}")
+    match command:
+        case DotCommands.DBINFO:
+            db_info = DbInfo(database_file_path)
+            print(f"database page size: {db_info.page_size}")
+            print(f"number of tables: {db_info.number_of_tables}")
+        case DotCommands.TABLES:
+            db_info = DbInfo(database_file_path)
+            print(" ".join(db_info.table_names))
+        case _:
+            select_count = re.compile(r"SELECT COUNT\(\*\) FROM (\w+)", re.IGNORECASE)
+            if (match := select_count.search(command)) is not None:
+                table_name, = match.groups()
+                print(len(DbInfo(database_file_path).find_table(table_name).child_rows))
+            else:
+                print(f"Invalid command: {command}")
 
 
 if __name__ == "__main__":

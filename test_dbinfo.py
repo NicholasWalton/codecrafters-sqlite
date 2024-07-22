@@ -62,3 +62,20 @@ def test_extract_table_names():
                      ['index', 'idx_companies_country', 'companies', 4,
                       'CREATE INDEX idx_companies_country\n\ton companies (country)']]
     assert extract_table_names(sqlite_schema) == ['companies']
+
+
+@pytest.mark.parametrize("size", [1, 384], )
+def test_last_table(tmp_path, size):
+    tmp_db_path = build_test_database(tmp_path, size, row_count=size)
+    db_info = DbInfo(tmp_db_path)
+    assert not db_info.find_table('no_such_table')
+    last_table = db_info.find_table(f'dummy{size - 1}')
+    assert len(last_table.child_rows) == size
+
+
+@pytest.mark.parametrize("size", [1], )
+def test_table_name_case_insensitive(tmp_path, size):
+    tmp_db_path = build_test_database(tmp_path, size, row_count=size)
+    db_info = DbInfo(tmp_db_path)
+    table = db_info.find_table(f'dummy{size - 1}')
+    assert db_info.find_table(f'DUMMY{size - 1}') == table

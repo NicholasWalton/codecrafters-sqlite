@@ -16,23 +16,25 @@ def build_sqlite_schema_table(expected_tables):
     return page_one
 
 
-def build_in_memory_test_database(expected_tables, page_size=MIN_PAGE_SIZE):
+def build_in_memory_test_database(expected_tables, **kwargs):
     with sqlite3.connect(":memory:") as db:
-        create_tables(db, expected_tables, page_size)
+        create_tables(db, expected_tables, **kwargs)
         return db.serialize()
 
 
-def build_test_database(tmp_path, expected_tables, page_size=MIN_PAGE_SIZE):
+def build_test_database(tmp_path, expected_tables, **kwargs):
     tmp_db_path = tmp_path / "test.db"
     with sqlite3.connect(tmp_db_path) as db:
-        create_tables(db, expected_tables, page_size)
+        create_tables(db, expected_tables, **kwargs)
     return tmp_db_path
 
 
-def create_tables(db, count, page_size):
+def create_tables(db, count, page_size=MIN_PAGE_SIZE, row_count=0):
     db.execute("PRAGMA page_size = %d;" % page_size)
-    for i in range(count):
-        db.execute("CREATE TABLE dummy%d (value int);" % i)
+    for table in range(count):
+        db.execute("CREATE TABLE dummy%d (value int);" % table)
+        for row in range(row_count):
+            db.execute(f"INSERT INTO dummy{table} VALUES(?)", (row,))
     db.commit()
     assert db.execute("SELECT count(*) FROM sqlite_schema").fetchall() == [(count,)]
 
@@ -92,3 +94,14 @@ def test_sqlite_schema_table_spanning_more_depth(expected_tables):
     page_one = build_sqlite_schema_table(expected_tables)
     assert len(page_one.children) > 0
     assert any(child.page_type == TABLE_INTERIOR for child in page_one.children)
+
+
+@pytest.mark.parametrize("expected_tables", [1, 5003])
+def test_empty_last_table(expected_tables):
+    sqlite_schema = build_sqlite_schema_table(expected_tables)
+    assert len(sqlite_schema.child_rows) == expected_tables
+    (type_, name, table_name, rootpage, sql) = sqlite_schema.child_rows[-1]
+    assert type_ == 'table'
+    assert name == f'dummy{expected_tables - 1}'
+    last_table = DbPage(sqlite_schema.database_file, rootpage, page_size=MIN_PAGE_SIZE)
+    assert len(last_table.child_rows) == 0
