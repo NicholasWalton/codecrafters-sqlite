@@ -5,15 +5,13 @@ def varint_at(bytearray_slice, offset):
 def varint_decode(varint, huffman_length=9):
     unsigned = 0
 
-    byte_index = 0
-    while byte_index < huffman_length - 1 and _high_bit(varint[byte_index]):
-        unsigned = (unsigned << 7) + _lower7(varint[byte_index])  # zero or more bytes which have the high-order bit set
-        byte_index += 1
-
-    if byte_index == huffman_length - 1:
-        unsigned = (unsigned << 8) + varint[byte_index]  # all 8 bits of the nth byte
+    for byte_index in range(huffman_length - 1):  # zero or more bytes which have the high-order bit set
+        unsigned = (unsigned << 7) + _lower7(varint[byte_index])  # The lower seven bits of each of the first n-1 bytes
+        if not _high_bit(varint[byte_index]):  # including a single end byte with the high-order bit clear
+            break
     else:
-        unsigned = (unsigned << 7) + varint[byte_index]  # or a single end byte with the high-order bit clear
+        byte_index += 1
+        unsigned = (unsigned << 8) + varint[byte_index]  # or all 8 bits of the nth byte
 
     huffman_bits = 7 * huffman_length + 1
     sign_bit = 1 << (huffman_bits - 1)
