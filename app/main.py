@@ -4,6 +4,7 @@ import sys
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from mmap import ACCESS_READ, mmap
+from pprint import pformat
 
 from app import _read_integer
 from app.cells import TableLeafCell
@@ -20,6 +21,8 @@ PAGE_SIZE_OFFSET = 16
 
 CELL_POINTER_SIZE = 2
 MIN_PAGE_SIZE = 512
+
+logger = logging.getLogger(__name__)
 
 
 class PageType(IntEnum):
@@ -82,6 +85,7 @@ class DbPage:
     RIGHT_MOST_POINTER_OFFSET = 8
 
     def __init__(self, database_file, page_number=1, page_size=4096, usable_size=4096):
+        self.errors = 0
         self.child_rows = []
         self.page_size = page_size
         self.usable_size = usable_size
@@ -102,9 +106,18 @@ class DbPage:
         )
 
         self.children = []
+        logging.debug(f"Reading page {self.page_number}")
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
                 self.child_rows.append(self._get_row(cell))
+            if self.errors:
+                logger.error(f"{self.errors} errors in page {page_number}")
+                cell_pointer_array = self.page[self.page_type.cell_pointer_array_offset()
+                                               :self.page_type.cell_pointer_array_offset() + CELL_POINTER_SIZE * self.number_of_cells]
+                pairs = zip(*([iter(cell_pointer_array)] * 2))
+                cell_pointers = list(int.from_bytes(pointer, byteorder="big") for pointer in pairs)
+                logger.error(f"Page {page_number} cell pointer array:{pformat(cell_pointers)}")
+                logger.debug(f"Page {page_number} rows:\n{pformat(self.child_rows, indent=4)}")
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_content_pointer = self.get_cell_content_pointer(cell)
@@ -114,6 +127,11 @@ class DbPage:
 
     def _get_row(self, cell_number):
         cell = TableLeafCell(self.page, self.get_cell_content_pointer(cell_number), self.usable_size)
+        logging.debug(f"Cell {cell_number}: {cell.columns[:2]}")
+        self.errors += cell.errors
+        if cell.errors:
+            logger.error(f"{cell.errors} errors in cell {cell_number} at +{self.get_cell_content_pointer(cell_number)} on page {self.page_number}")
+            logger.debug(f"Cell {cell_number} columns:\n{pformat(cell.columns, indent=4)}")
         return cell.columns
 
     def get_cell_content_pointer(self, cell):
@@ -135,6 +153,7 @@ class DbPage:
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     database_file_path = "../sample.db"
     if len(sys.argv) > 1:
         database_file_path = sys.argv[1]
