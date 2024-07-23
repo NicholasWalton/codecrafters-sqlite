@@ -29,8 +29,8 @@ def test_15_bit_huffman(byte_tuple, expected):
     (
             ((0b0000_0000,), 0),
             ((0b0000_0001,), 1),
-            ((0b1000_0001, 0b0000_0000), 256),
-            ((0b1100_0000, 0b0000_0000), 16384),
+            ((0b1000_0001, 0b0000_0000), 128),
+            ((0b1100_0000, 0b0000_0000), 8192),
             ((0b1000_0001, 0b1000_0000, 0b0000_0000), 32768),
             ((0b1000_0001, 0b1000_0000, 0b0000_0001), 32769),
             ((0b1010_0000, 0b1000_0000, 0b0000_0000), 1 << 20),
@@ -97,3 +97,14 @@ def test_zero_varint(varint_length):
     _, length = varint_decode(bytearray((0b0000_0000,)), varint_length)
     assert length == 1
 
+@pytest.mark.parametrize("low_byte", range(0,127))
+def test_problem_varint(low_byte):
+    value, length = varint_decode(bytearray((0x81,low_byte,0xb5,ord('n'),0x0c)))
+    assert length == 2
+    assert value == 0x80 + low_byte
+
+@pytest.mark.parametrize("low_byte", range(0,127))
+def test_ok_varint(low_byte):
+    value, length = varint_decode(bytearray((0x80,low_byte,0xb5,ord('n'),0x0c)))
+    assert length == 2
+    assert value == low_byte
