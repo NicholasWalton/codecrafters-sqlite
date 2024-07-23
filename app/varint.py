@@ -7,13 +7,13 @@ def varint_decode(varint, huffman_length=9):
 
     byte_index = 0
     while byte_index < huffman_length - 1 and _high_bit(varint[byte_index]):
-        unsigned = (unsigned << 7) + (_lower7(varint[byte_index]))
+        unsigned = (unsigned << 7) + _lower7(varint[byte_index])  # zero or more bytes which have the high-order bit set
         byte_index += 1
 
     if byte_index == huffman_length - 1:
-        unsigned = (unsigned << 8) + varint[byte_index]
+        unsigned = (unsigned << 8) + varint[byte_index]  # all 8 bits of the nth byte
     else:
-        unsigned = (unsigned << 7) + varint[byte_index]
+        unsigned = (unsigned << 7) + varint[byte_index]  # or a single end byte with the high-order bit clear
 
     huffman_bits = 7 * huffman_length + 1
     sign_bit = 1 << (huffman_bits - 1)
