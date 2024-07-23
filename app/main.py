@@ -1,3 +1,4 @@
+import logging
 import re
 import sys
 from dataclasses import dataclass
@@ -85,6 +86,7 @@ class DbPage:
         self.page_size = page_size
         self.usable_size = usable_size
         self.database_file = database_file
+        self.page_number = page_number
         self.page_content_cells_offset = self.page_size * (page_number - 1)
         self.page_offset = 100 if page_number == 1 else self.page_content_cells_offset
         self.page = database_file[self.page_offset: self.page_content_cells_offset + self.page_size]

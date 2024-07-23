@@ -1,6 +1,7 @@
 import pytest
 
 from app import cells
+from app.cells import TableLeafCell
 
 
 @pytest.mark.parametrize("record,serial_type_code,expected_value,expected_content_size", (
@@ -18,3 +19,31 @@ def test_decode_integer(record, serial_type_code, expected_value, expected_conte
 ))
 def test_decode_literal(serial_type_code, expected_value):
     assert cells._decode([], 0, serial_type_code) == (expected_value, 0)
+
+
+def test_decode_bad_unicode():
+    message, string_length = cells._decode(b'\xb1', 0, 15)
+    assert string_length == 1
+    assert message.startswith("failed to decode")
+    assert message.find("xb1")
+    assert message.endswith("invalid start byte")
+
+
+def test_bad_unicode_in_cell():
+    row_id = 0x00
+    header_size = 0x03  # includes self
+    one_byte_string_serial_type = (1 * 2) + 13
+    invalid_unicode = 0xb1
+    int8_serial_type = 1
+    int8_value = 42
+    page = bytearray(
+        [0x00, row_id, header_size, one_byte_string_serial_type, int8_serial_type, invalid_unicode, int8_value]
+    )
+    page[0] = len(page)
+    pointer = 0
+    usable_size = 35 + len(page)
+    cell = TableLeafCell(page, pointer, usable_size)
+    assert cell.errors == 1
+    message, actual_int8 = cell.columns
+    assert actual_int8 == int8_value
+    assert message.startswith("failed to decode")
