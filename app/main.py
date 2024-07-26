@@ -111,13 +111,11 @@ class DbPage:
             65536 if cell_content_area_start == 0 else cell_content_area_start
         )
 
-        cell_pointer_array_start = self.page_type.cell_pointer_array_offset()
-        cell_pointer_array_end = (
-            cell_pointer_array_start + CELL_POINTER_SIZE * self.number_of_cells
+        self.cell_pointer_array = _buffer(
+            self.page,
+            self.page_type.cell_pointer_array_offset(),
+            CELL_POINTER_SIZE * self.number_of_cells,
         )
-        self.cell_pointer_array = self.page[
-            cell_pointer_array_start:cell_pointer_array_end
-        ]
 
         logging.debug(f"Reading page {self.page_number}")
         if self.page_type.is_leaf():

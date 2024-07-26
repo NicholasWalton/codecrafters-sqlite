@@ -1,7 +1,7 @@
 import logging
 from pprint import pformat
 
-from app import _read_integer
+from app import _buffer, _read_integer
 from app.varint import varint_at
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,9 @@ class TableLeafCell:
         rowid, rowid_length = varint_at(page, pointer + self.payload_size_length)
         id_message = f'rowid {rowid}: {payload_size} bytes at {pointer}'
         logger.debug(id_message)
-        self.slice = page[pointer:pointer + payload_size + self.payload_size_length + rowid_length]
+        self.slice = _buffer(
+            page, pointer, payload_size + self.payload_size_length + rowid_length
+        )
         self.record = self.slice[self.payload_size_length + rowid_length:]
         header_size, header_size_length = varint_at(self.record, 0)
         column_types = []
