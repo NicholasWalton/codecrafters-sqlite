@@ -122,28 +122,27 @@ class DbPage:
             for cell in range(self.number_of_cells):
                 self.child_rows.append(self._get_row(cell))
             if self.errors:
-                logger.error(f"{self.errors} errors in page {page_number}")
-                cell_pointer_array = _buffer(
-                    self.page,
-                    self.page_type.cell_pointer_array_offset(),
-                    CELL_POINTER_SIZE * self.number_of_cells,
-                )
-                pairs = zip(*([iter(cell_pointer_array)] * 2))
-                cell_pointers = list(
-                    int.from_bytes(pointer, byteorder="big") for pointer in pairs
-                )
-                logger.error(
-                    f"Page {page_number} cell pointer array:{pformat(cell_pointers)}"
-                )
-                logger.debug(
-                    f"Page {page_number} rows:\n{pformat(self.child_rows, indent=4)}"
-                )
+                self._log_leaf_page_error(page_number)
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_content_pointer = self.get_cell_content_pointer(cell)
                 self._add_child_at(cell_content_pointer)
 
             self._add_child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
+
+    def _log_leaf_page_error(self, page_number):
+        logger.error(f"{self.errors} errors in page {page_number}")
+        cell_pointer_array = _buffer(
+            self.page,
+            self.page_type.cell_pointer_array_offset(),
+            CELL_POINTER_SIZE * self.number_of_cells,
+        )
+        pairs = zip(*([iter(cell_pointer_array)] * 2))
+        cell_pointers = list(
+            int.from_bytes(pointer, byteorder="big") for pointer in pairs
+        )
+        logger.error(f"Page {page_number} cell pointer array:{pformat(cell_pointers)}")
+        logger.debug(f"Page {page_number} rows:\n{pformat(self.child_rows, indent=4)}")
 
     @property
     def page_content_cells_offset(self):
@@ -160,13 +159,14 @@ class DbPage:
         logging.debug(f"Cell {cell_number}: {cell.columns[:2]}")
         self.errors += cell.errors
         if cell.errors:
-            logger.error(
-                f"{cell.errors} errors in cell {cell_number} at +{self.get_cell_content_pointer(cell_number)} on page {self.page_number}"
-            )
-            logger.debug(
-                f"Cell {cell_number} columns:\n{pformat(cell.columns, indent=4)}"
-            )
+            self._log_cell_errors(cell_number, cell)
         return cell.columns
+
+    def _log_cell_errors(self, cell_number, cell):
+        logger.error(
+            f"{cell.errors} errors in cell {cell_number} at +{self.get_cell_content_pointer(cell_number)} on page {self.page_number}"
+        )
+        logger.debug(f"Cell {cell_number} columns:\n{pformat(cell.columns, indent=4)}")
 
     def get_cell_content_pointer(self, cell):
         cell_offset = _read_integer(

@@ -49,14 +49,17 @@ class TableLeafCell:
             self.columns.append(content)
             current_location += content_size
         if self.errors != 0:
-            logger.error(f"{self.errors} cell errors for {id_message}")
-            logger.error(f"Cell: {pformat(self.cell, indent=4)}")
-            logger.error(f"Record: {pformat(self.record, indent=4)}")
-            logger.error(
-                f"Remainder of columns: {pformat(self.record[current_location:], indent=4)}"
-            )
+            self._log_errors(id_message, current_location)
         if self.columns[0] is None:
             self.columns[0] = rowid
+
+    def _log_errors(self, id_message, current_location):
+        logger.error(f"{self.errors} cell errors for {id_message}")
+        logger.error(f"Cell: {pformat(self.cell, indent=4)}")
+        logger.error(f"Record: {pformat(self.record, indent=4)}")
+        logger.error(
+            f"Remainder of columns: {pformat(self.record[current_location:], indent=4)}"
+        )
 
 
 def _decode(record, current_location, serial_type_code):
