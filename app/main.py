@@ -63,19 +63,22 @@ class DbInfo:
             self.number_of_tables = len(self.sqlite_schema)
 
     def find_table(self, requested_name):
-        for (type_, name, table_name, rootpage, sql) in self.sqlite_schema:
-            if type_ == 'table' and name.casefold() == requested_name.casefold():
+        for type_, name, table_name, rootpage, sql in self.sqlite_schema:
+            if type_ == "table" and name.casefold() == requested_name.casefold():
                 return self._table(rootpage)
 
     def _table(self, rootpage):
-        return DbPage(self.database_mmap, page_number=rootpage, page_size=self.page_size)
+        return DbPage(
+            self.database_mmap, page_number=rootpage, page_size=self.page_size
+        )
 
 
 def extract_table_names(sqlite_schema):
-    return [name for type_, name, *_
-            in sqlite_schema
-            if type_ == 'table' and not name.startswith('sqlite_')
-            ]
+    return [
+        name
+        for type_, name, *_ in sqlite_schema
+        if type_ == "table" and not name.startswith("sqlite_")
+    ]
 
 
 @dataclass
@@ -87,16 +90,20 @@ class DbPage:
 
     def __init__(self, database_file, page_number=1, page_size=4096, usable_size=4096):
         self.errors = 0
-        self.child_rows = [] # TODO: this is a terrible idea
+        self.child_rows = []  # TODO: this is a terrible idea
         self.children = []
         self.page_size = page_size
         self.usable_size = usable_size
         self.database_file = database_file
         self.page_number = page_number
 
-        self.page = database_file[self.page_offset: self.page_content_cells_offset + self.page_size]
+        self.page = database_file[
+            self.page_offset : self.page_content_cells_offset + self.page_size
+        ]
 
-        page_type, first_freeblock, self.number_of_cells, cell_content_area_start = struct.unpack_from(">BHHH", self.page)
+        page_type, first_freeblock, self.number_of_cells, cell_content_area_start = (
+            struct.unpack_from(">BHHH", self.page)
+        )
         self.page_type = PageType(page_type)
         assert self.page_type.is_table()
         # assert first_freeblock == 0
@@ -105,8 +112,12 @@ class DbPage:
         )
 
         cell_pointer_array_start = self.page_type.cell_pointer_array_offset()
-        cell_pointer_array_end = cell_pointer_array_start + CELL_POINTER_SIZE * self.number_of_cells
-        self.cell_pointer_array = self.page[cell_pointer_array_start:cell_pointer_array_end]
+        cell_pointer_array_end = (
+            cell_pointer_array_start + CELL_POINTER_SIZE * self.number_of_cells
+        )
+        self.cell_pointer_array = self.page[
+            cell_pointer_array_start:cell_pointer_array_end
+        ]
 
         logging.debug(f"Reading page {self.page_number}")
         if self.page_type.is_leaf():
@@ -114,12 +125,20 @@ class DbPage:
                 self.child_rows.append(self._get_row(cell))
             if self.errors:
                 logger.error(f"{self.errors} errors in page {page_number}")
-                cell_pointer_array = self.page[self.page_type.cell_pointer_array_offset()
-                                               :self.page_type.cell_pointer_array_offset() + CELL_POINTER_SIZE * self.number_of_cells]
+                cell_pointer_array = self.page[
+                    self.page_type.cell_pointer_array_offset() : self.page_type.cell_pointer_array_offset()
+                    + CELL_POINTER_SIZE * self.number_of_cells
+                ]
                 pairs = zip(*([iter(cell_pointer_array)] * 2))
-                cell_pointers = list(int.from_bytes(pointer, byteorder="big") for pointer in pairs)
-                logger.error(f"Page {page_number} cell pointer array:{pformat(cell_pointers)}")
-                logger.debug(f"Page {page_number} rows:\n{pformat(self.child_rows, indent=4)}")
+                cell_pointers = list(
+                    int.from_bytes(pointer, byteorder="big") for pointer in pairs
+                )
+                logger.error(
+                    f"Page {page_number} cell pointer array:{pformat(cell_pointers)}"
+                )
+                logger.debug(
+                    f"Page {page_number} rows:\n{pformat(self.child_rows, indent=4)}"
+                )
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_content_pointer = self.get_cell_content_pointer(cell)
@@ -136,16 +155,24 @@ class DbPage:
         return 100 if self.page_number == 1 else self.page_content_cells_offset
 
     def _get_row(self, cell_number):
-        cell = TableLeafCell(self.page, self.get_cell_content_pointer(cell_number), self.usable_size)
+        cell = TableLeafCell(
+            self.page, self.get_cell_content_pointer(cell_number), self.usable_size
+        )
         logging.debug(f"Cell {cell_number}: {cell.columns[:2]}")
         self.errors += cell.errors
         if cell.errors:
-            logger.error(f"{cell.errors} errors in cell {cell_number} at +{self.get_cell_content_pointer(cell_number)} on page {self.page_number}")
-            logger.debug(f"Cell {cell_number} columns:\n{pformat(cell.columns, indent=4)}")
+            logger.error(
+                f"{cell.errors} errors in cell {cell_number} at +{self.get_cell_content_pointer(cell_number)} on page {self.page_number}"
+            )
+            logger.debug(
+                f"Cell {cell_number} columns:\n{pformat(cell.columns, indent=4)}"
+            )
         return cell.columns
 
     def get_cell_content_pointer(self, cell):
-        cell_offset = _read_integer(self.cell_pointer_array, cell * CELL_POINTER_SIZE, CELL_POINTER_SIZE)
+        cell_offset = _read_integer(
+            self.cell_pointer_array, cell * CELL_POINTER_SIZE, CELL_POINTER_SIZE
+        )
         return cell_offset + self.page_content_cells_offset - self.page_offset
 
     def _read_integer(self, location_in_page, size):
@@ -178,7 +205,7 @@ def main():
         case _:
             select_count = re.compile(r"SELECT COUNT\(\*\) FROM (\w+)", re.IGNORECASE)
             if (match := select_count.search(command)) is not None:
-                table_name, = match.groups()
+                (table_name,) = match.groups()
                 print(len(DbInfo(database_file_path).find_table(table_name).child_rows))
             else:
                 print(f"Invalid command: {command}")
