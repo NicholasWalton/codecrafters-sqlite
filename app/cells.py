@@ -17,9 +17,11 @@ class TableLeafCell:
     def __init__(self, page, pointer, usable_size):
         self.errors = 0
         payload_size, self.payload_size_length = varint(page[pointer:])
-        assert payload_size <= usable_size - 35  # let U be the usable size of a database page, the total page size less the reserved space at the end of each page. Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page
+        assert (
+            payload_size <= usable_size - 35
+        )  # let U be the usable size of a database page, the total page size less the reserved space at the end of each page. Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page
         rowid, rowid_length = varint(page[pointer + self.payload_size_length :])
-        id_message = f'rowid {rowid}: {payload_size} bytes at {pointer}'
+        id_message = f"rowid {rowid}: {payload_size} bytes at {pointer}"
         logger.debug(id_message)
         self.cell = _buffer(
             page, pointer, payload_size + self.payload_size_length + rowid_length
@@ -37,7 +39,9 @@ class TableLeafCell:
         self.columns = []
         for serial_type_code in column_types:
             try:
-                content, content_size = _decode(self.record, current_location, serial_type_code)
+                content, content_size = _decode(
+                    self.record, current_location, serial_type_code
+                )
             except DecodeError as e:
                 content = e.message
                 content_size = e.content_size
@@ -45,10 +49,12 @@ class TableLeafCell:
             self.columns.append(content)
             current_location += content_size
         if self.errors != 0:
-            logger.error(f'{self.errors} cell errors for {id_message}')
+            logger.error(f"{self.errors} cell errors for {id_message}")
             logger.error(f"Cell: {pformat(self.cell, indent=4)}")
-            logger.error(f'Record: {pformat(self.record, indent=4)}')
-            logger.error(f'Remainder of columns: {pformat(self.record[current_location:], indent=4)}')
+            logger.error(f"Record: {pformat(self.record, indent=4)}")
+            logger.error(
+                f"Remainder of columns: {pformat(self.record[current_location:], indent=4)}"
+            )
         if self.columns[0] is None:
             self.columns[0] = rowid
 
@@ -62,13 +68,15 @@ def _decode(record, current_location, serial_type_code):
         case 9:
             return 1, 0
         case 1 | 2 | 3 | 4 | 6:
-            content = _read_integer(record, current_location, serial_type_code, signed=True)
+            content = _read_integer(
+                record, current_location, serial_type_code, signed=True
+            )
             return content, serial_type_code
         case _:
             if serial_type_code >= 13 and serial_type_code % 2 == 1:
                 string_length = (serial_type_code - 13) // 2
-                entry = record[current_location:current_location + string_length]
-                logger.debug(f'decoded [{entry}] with length {string_length}')
+                entry = record[current_location : current_location + string_length]
+                logger.debug(f"decoded [{entry}] with length {string_length}")
                 try:
                     decoded = entry.decode()
                 except UnicodeDecodeError as e:

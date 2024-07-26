@@ -4,7 +4,9 @@ VARINT_LENGTH = 9
 def varint(buffer, huffman_length=VARINT_LENGTH):
     unsigned = 0
 
-    for byte_index in range(huffman_length - 1):  # zero or more bytes which have the high-order bit set
+    for byte_index in range(
+        huffman_length - 1
+    ):  # zero or more bytes which have the high-order bit set
         unsigned = (unsigned << 7) + _lower7(
             buffer[byte_index]
         )  # The lower seven bits of each of the first n-1 bytes
