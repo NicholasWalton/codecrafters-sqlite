@@ -104,6 +104,10 @@ class DbPage:
             65536 if cell_content_area_start == 0 else cell_content_area_start
         )
 
+        cell_pointer_array_start = self.page_type.cell_pointer_array_offset()
+        cell_pointer_array_end = cell_pointer_array_start + CELL_POINTER_SIZE * self.number_of_cells
+        self.cell_pointer_array = self.page[cell_pointer_array_start:cell_pointer_array_end]
+
         logging.debug(f"Reading page {self.page_number}")
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
@@ -141,11 +145,7 @@ class DbPage:
         return cell.columns
 
     def get_cell_content_pointer(self, cell):
-        cell_pointer_location = (
-                cell * CELL_POINTER_SIZE
-                + self.page_type.cell_pointer_array_offset()
-        )
-        cell_offset = self._read_integer(cell_pointer_location, CELL_POINTER_SIZE)
+        cell_offset = _read_integer(self.cell_pointer_array, cell * CELL_POINTER_SIZE, CELL_POINTER_SIZE)
         return cell_offset + self.page_content_cells_offset - self.page_offset
 
     def _read_integer(self, location_in_page, size):
