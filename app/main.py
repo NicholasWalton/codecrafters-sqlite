@@ -7,7 +7,7 @@ from enum import IntEnum, StrEnum
 from mmap import ACCESS_READ, mmap
 from pprint import pformat
 
-from app import _read_integer
+from app import _buffer, _read_integer
 from app.cells import TableLeafCell
 
 
@@ -125,10 +125,11 @@ class DbPage:
                 self.child_rows.append(self._get_row(cell))
             if self.errors:
                 logger.error(f"{self.errors} errors in page {page_number}")
-                cell_pointer_array = self.page[
-                    self.page_type.cell_pointer_array_offset() : self.page_type.cell_pointer_array_offset()
-                    + CELL_POINTER_SIZE * self.number_of_cells
-                ]
+                cell_pointer_array = _buffer(
+                    self.page,
+                    self.page_type.cell_pointer_array_offset(),
+                    CELL_POINTER_SIZE * self.number_of_cells,
+                )
                 pairs = zip(*([iter(cell_pointer_array)] * 2))
                 cell_pointers = list(
                     int.from_bytes(pointer, byteorder="big") for pointer in pairs
