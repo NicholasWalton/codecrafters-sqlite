@@ -1,5 +1,6 @@
 import logging
 import re
+import struct
 import sys
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
@@ -95,12 +96,10 @@ class DbPage:
         self.page_offset = 100 if page_number == 1 else self.page_content_cells_offset
         self.page = database_file[self.page_offset: self.page_content_cells_offset + self.page_size]
 
-        self.page_type = PageType(self._read_integer(0, 1))
+        page_type, first_freeblock, self.number_of_cells, cell_content_area_start = struct.unpack_from(">BHHH", self.page)
+        self.page_type = PageType(page_type)
         assert self.page_type.is_table()
-        first_freeblock = self._read_integer(1, 2)
         # assert first_freeblock == 0
-        self.number_of_cells = self._read_integer(3, 2)
-        cell_content_area_start = self._read_integer(5, 2)
         self.cell_content_area_start = (
             65536 if cell_content_area_start == 0 else cell_content_area_start
         )
