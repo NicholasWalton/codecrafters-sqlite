@@ -2,7 +2,7 @@ import logging
 from pprint import pformat
 
 from app import _buffer, _read_integer
-from app.varint import varint_at
+from app.varint import varint
 
 logger = logging.getLogger(__name__)
 
@@ -16,20 +16,20 @@ class DecodeError(Exception):
 class TableLeafCell:
     def __init__(self, page, pointer, usable_size):
         self.errors = 0
-        payload_size, self.payload_size_length = varint_at(page, pointer)
+        payload_size, self.payload_size_length = varint(page[pointer:])
         assert payload_size <= usable_size - 35  # let U be the usable size of a database page, the total page size less the reserved space at the end of each page. Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page
-        rowid, rowid_length = varint_at(page, pointer + self.payload_size_length)
+        rowid, rowid_length = varint(page[pointer + self.payload_size_length :])
         id_message = f'rowid {rowid}: {payload_size} bytes at {pointer}'
         logger.debug(id_message)
-        self.slice = _buffer(
+        self.cell = _buffer(
             page, pointer, payload_size + self.payload_size_length + rowid_length
-        )
-        self.record = self.slice[self.payload_size_length + rowid_length:]
-        header_size, header_size_length = varint_at(self.record, 0)
+        )  # TODO: just slice
+        self.record = self.cell[self.payload_size_length + rowid_length :]
+        header_size, header_size_length = varint(self.record[0:])
         column_types = []
         current_location = header_size_length
         while current_location < header_size:
-            serial_type, length = varint_at(self.record, current_location)
+            serial_type, length = varint(self.record[current_location:])
             current_location += length
             column_types.append(serial_type)
 
@@ -46,7 +46,7 @@ class TableLeafCell:
             current_location += content_size
         if self.errors != 0:
             logger.error(f'{self.errors} cell errors for {id_message}')
-            logger.error(f'Cell: {pformat(self.slice, indent=4)}')
+            logger.error(f"Cell: {pformat(self.cell, indent=4)}")
             logger.error(f'Record: {pformat(self.record, indent=4)}')
             logger.error(f'Remainder of columns: {pformat(self.record[current_location:], indent=4)}')
         if self.columns[0] is None:

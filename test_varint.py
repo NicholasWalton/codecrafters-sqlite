@@ -1,10 +1,10 @@
 import pytest
 
-from app.varint import varint_decode
+from app.varint import varint
 
 
-def huffman_decode(varint, huffman_length=9):
-    value, _ = varint_decode(varint, huffman_length)
+def huffman_decode(buffer, huffman_length=9):
+    value, _ = varint(buffer, huffman_length)
     return value
 
 
@@ -82,7 +82,7 @@ def test_min_huffman(huffman_length):
 
 @pytest.mark.parametrize("varint_length", range(2, 10))
 def test_min_varint(varint_length):
-    _, length = varint_decode(min_varint(varint_length), varint_length)
+    _, length = varint(min_varint(varint_length), varint_length)
     assert length == varint_length
 
 
@@ -94,17 +94,17 @@ def min_varint(huffman_length):
 
 @pytest.mark.parametrize("varint_length", range(2, 10))
 def test_zero_varint(varint_length):
-    _, length = varint_decode(bytearray((0b0000_0000,)), varint_length)
+    _, length = varint(bytearray((0b0000_0000,)), varint_length)
     assert length == 1
 
 @pytest.mark.parametrize("low_byte", range(0,127))
 def test_problem_varint(low_byte):
-    value, length = varint_decode(bytearray((0x81,low_byte,0xb5,ord('n'),0x0c)))
+    value, length = varint(bytearray((0x81, low_byte, 0xB5, ord("n"), 0x0C)))
     assert length == 2
     assert value == 0x80 + low_byte
 
 @pytest.mark.parametrize("low_byte", range(0,127))
 def test_ok_varint(low_byte):
-    value, length = varint_decode(bytearray((0x80,low_byte,0xb5,ord('n'),0x0c)))
+    value, length = varint(bytearray((0x80, low_byte, 0xB5, ord("n"), 0x0C)))
     assert length == 2
     assert value == low_byte
