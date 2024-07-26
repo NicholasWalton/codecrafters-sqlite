@@ -58,12 +58,12 @@ class DbInfo:
             self.page_size = _read_integer(self.database_mmap, PAGE_SIZE_OFFSET, 2)
             self.page_size = 65536 if self.page_size == 1 else self.page_size
             sqlite_schema_tree_root = self._table(1)
-            self.sqlite_schema = sqlite_schema_tree_root.child_rows
-            self.table_names = extract_table_names(self.sqlite_schema)
-            self.number_of_tables = len(self.sqlite_schema)
+            self._sqlite_schema = sqlite_schema_tree_root.child_rows
+            self.table_names = extract_table_names(self._sqlite_schema)
+            self.number_of_tables = len(self._sqlite_schema)
 
     def find_table(self, requested_name):
-        for type_, name, table_name, rootpage, sql in self.sqlite_schema:
+        for type_, name, table_name, rootpage, sql in self._sqlite_schema:
             if type_ == "table" and name.casefold() == requested_name.casefold():
                 return self._table(rootpage)
 
@@ -84,25 +84,25 @@ def extract_table_names(sqlite_schema):
 @dataclass
 class DbPage:
     number_of_cells: int = 0
-    page_size: int = -1
+    _page_size: int = -1
 
     RIGHT_MOST_POINTER_OFFSET = 8
 
     def __init__(self, database_file, page_number=1, page_size=4096, usable_size=4096):
-        self.errors = 0
+        self._errors = 0
         self.child_rows = []  # TODO: this is a terrible idea
         self.children = []
-        self.page_size = page_size
-        self.usable_size = usable_size
+        self._page_size = page_size
+        self._usable_size = usable_size
         self.database_file = database_file
-        self.page_number = page_number
+        self._page_number = page_number
 
-        self.page = database_file[
-            self.page_offset : self.page_content_cells_offset + self.page_size
+        self._page = database_file[
+            self._page_offset : self._page_content_cells_offset + self._page_size
         ]
 
         page_type, first_freeblock, self.number_of_cells, cell_content_area_start = (
-            struct.unpack_from(">BHHH", self.page)
+            struct.unpack_from(">BHHH", self._page)
         )
         self.page_type = PageType(page_type)
         assert self.page_type.is_table()
@@ -111,29 +111,29 @@ class DbPage:
             65536 if cell_content_area_start == 0 else cell_content_area_start
         )
 
-        self.cell_pointer_array = _buffer(
-            self.page,
+        self._cell_pointer_array = _buffer(
+            self._page,
             self.page_type.cell_pointer_array_offset(),
             CELL_POINTER_SIZE * self.number_of_cells,
         )
 
-        logging.debug(f"Reading page {self.page_number}")
+        logging.debug(f"Reading page {self._page_number}")
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
                 self.child_rows.append(self._get_row(cell))
-            if self.errors:
+            if self._errors:
                 self._log_leaf_page_error(page_number)
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
-                cell_content_pointer = self.get_cell_content_pointer(cell)
+                cell_content_pointer = self._cell_content_pointer(cell)
                 self._add_child_at(cell_content_pointer)
 
             self._add_child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
 
     def _log_leaf_page_error(self, page_number):
-        logger.error(f"{self.errors} errors in page {page_number}")
+        logger.error(f"{self._errors} errors in page {page_number}")
         cell_pointer_array = _buffer(
-            self.page,
+            self._page,
             self.page_type.cell_pointer_array_offset(),
             CELL_POINTER_SIZE * self.number_of_cells,
         )
@@ -145,45 +145,45 @@ class DbPage:
         logger.debug(f"Page {page_number} rows:\n{pformat(self.child_rows, indent=4)}")
 
     @property
-    def page_content_cells_offset(self):
-        return self.page_size * (self.page_number - 1)
+    def _page_content_cells_offset(self):
+        return self._page_size * (self._page_number - 1)
 
     @property
-    def page_offset(self):
-        return 100 if self.page_number == 1 else self.page_content_cells_offset
+    def _page_offset(self):
+        return 100 if self._page_number == 1 else self._page_content_cells_offset
 
     @property
     def _cell_content_offset(self):
-        return self.page_offset - self.page_content_cells_offset
+        return self._page_offset - self._page_content_cells_offset
 
     def _get_row(self, cell_number):
         cell = TableLeafCell(
-            self.page, self.get_cell_content_pointer(cell_number), self.usable_size
+            self._page, self._cell_content_pointer(cell_number), self._usable_size
         )
         logging.debug(f"Cell {cell_number}: {cell.columns[:2]}")
-        self.errors += cell.errors
+        self._errors += cell.errors
         if cell.errors:
             self._log_cell_errors(cell_number, cell)
         return cell.columns
 
     def _log_cell_errors(self, cell_number, cell):
         logger.error(
-            f"{cell.errors} errors in cell {cell_number} at +{self.get_cell_content_pointer(cell_number)} on page {self.page_number}"
+            f"{cell.errors} errors in cell {cell_number} at +{self._cell_content_pointer(cell_number)} on page {self._page_number}"
         )
         logger.debug(f"Cell {cell_number} columns:\n{pformat(cell.columns, indent=4)}")
 
-    def get_cell_content_pointer(self, cell):
+    def _cell_content_pointer(self, cell):
         cell_offset = _read_integer(
-            self.cell_pointer_array, cell * CELL_POINTER_SIZE, CELL_POINTER_SIZE
+            self._cell_pointer_array, cell * CELL_POINTER_SIZE, CELL_POINTER_SIZE
         )
         return cell_offset - self._cell_content_offset
 
     def _read_integer(self, location_in_page, size):
-        return _read_integer(self.page, location_in_page, size)
+        return _read_integer(self._page, location_in_page, size)
 
     def _add_child_at(self, child_page_number_location):
         child_page_number = self._read_integer(child_page_number_location, 4)
-        child_page = DbPage(self.database_file, child_page_number, self.page_size)
+        child_page = DbPage(self.database_file, child_page_number, self._page_size)
         self.children.append(child_page)
         self.child_rows += child_page.child_rows
 

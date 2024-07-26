@@ -9,7 +9,10 @@ from app.cells import TableLeafCell, DecodeError
         pytest.param([0xff], 1, -1, 1, id="negative_value"),
 ))
 def test_decode_integer(record, serial_type_code, expected_value, expected_content_size):
-    assert cells._decode(record, 0, serial_type_code) == (expected_value, expected_content_size)
+    assert cells.decode(record, 0, serial_type_code) == (
+        expected_value,
+        expected_content_size,
+    )
 
 
 @pytest.mark.parametrize("serial_type_code,expected_value", (
@@ -18,12 +21,12 @@ def test_decode_integer(record, serial_type_code, expected_value, expected_conte
         pytest.param(0, None, id="literal_null")
 ))
 def test_decode_literal(serial_type_code, expected_value):
-    assert cells._decode([], 0, serial_type_code) == (expected_value, 0)
+    assert cells.decode([], 0, serial_type_code) == (expected_value, 0)
 
 
 def test_decode_bad_unicode():
     with pytest.raises(DecodeError) as exc_info:
-        message, string_length = cells._decode(b'\xb1', 0, 15)
+        message, string_length = cells.decode(b"\xb1", 0, 15)
     assert exc_info
     e = exc_info.value
     assert e.content_size == 1

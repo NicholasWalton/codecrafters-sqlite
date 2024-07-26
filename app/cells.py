@@ -23,15 +23,15 @@ class TableLeafCell:
         rowid, rowid_length = varint(page[pointer + self.payload_size_length :])
         id_message = f"rowid {rowid}: {payload_size} bytes at {pointer}"
         logger.debug(id_message)
-        self.cell = _buffer(
+        self._cell = _buffer(
             page, pointer, payload_size + self.payload_size_length + rowid_length
         )  # TODO: just slice
-        self.record = self.cell[self.payload_size_length + rowid_length :]
-        header_size, header_size_length = varint(self.record[0:])
+        self._record = self._cell[self.payload_size_length + rowid_length :]
+        header_size, header_size_length = varint(self._record[0:])
         column_types = []
         current_location = header_size_length
         while current_location < header_size:
-            serial_type, length = varint(self.record[current_location:])
+            serial_type, length = varint(self._record[current_location:])
             current_location += length
             column_types.append(serial_type)
 
@@ -39,8 +39,8 @@ class TableLeafCell:
         self.columns = []
         for serial_type_code in column_types:
             try:
-                content, content_size = _decode(
-                    self.record, current_location, serial_type_code
+                content, content_size = decode(
+                    self._record, current_location, serial_type_code
                 )
             except DecodeError as e:
                 content = e.message
@@ -55,14 +55,14 @@ class TableLeafCell:
 
     def _log_errors(self, id_message, current_location):
         logger.error(f"{self.errors} cell errors for {id_message}")
-        logger.error(f"Cell: {pformat(self.cell, indent=4)}")
-        logger.error(f"Record: {pformat(self.record, indent=4)}")
+        logger.error(f"Cell: {pformat(self._cell, indent=4)}")
+        logger.error(f"Record: {pformat(self._record, indent=4)}")
         logger.error(
-            f"Remainder of columns: {pformat(self.record[current_location:], indent=4)}"
+            f"Remainder of columns: {pformat(self._record[current_location:], indent=4)}"
         )
 
 
-def _decode(record, current_location, serial_type_code):
+def decode(record, current_location, serial_type_code):
     match serial_type_code:
         case 0:
             return None, 0
