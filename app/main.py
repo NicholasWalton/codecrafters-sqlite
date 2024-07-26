@@ -87,13 +87,13 @@ class DbPage:
 
     def __init__(self, database_file, page_number=1, page_size=4096, usable_size=4096):
         self.errors = 0
-        self.child_rows = []
+        self.child_rows = [] # TODO: this is a terrible idea
+        self.children = []
         self.page_size = page_size
         self.usable_size = usable_size
         self.database_file = database_file
         self.page_number = page_number
-        self.page_content_cells_offset = self.page_size * (page_number - 1)
-        self.page_offset = 100 if page_number == 1 else self.page_content_cells_offset
+
         self.page = database_file[self.page_offset: self.page_content_cells_offset + self.page_size]
 
         page_type, first_freeblock, self.number_of_cells, cell_content_area_start = struct.unpack_from(">BHHH", self.page)
@@ -104,7 +104,6 @@ class DbPage:
             65536 if cell_content_area_start == 0 else cell_content_area_start
         )
 
-        self.children = []
         logging.debug(f"Reading page {self.page_number}")
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
@@ -123,6 +122,14 @@ class DbPage:
                 self._add_child_at(cell_content_pointer)
 
             self._add_child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
+
+    @property
+    def page_content_cells_offset(self):
+        return self.page_size * (self.page_number - 1)
+
+    @property
+    def page_offset(self):
+        return 100 if self.page_number == 1 else self.page_content_cells_offset
 
     def _get_row(self, cell_number):
         cell = TableLeafCell(self.page, self.get_cell_content_pointer(cell_number), self.usable_size)
