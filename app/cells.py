@@ -40,8 +40,8 @@ class TableLeafCell:
         )  # let U be the usable size of a database page, the total page size less the reserved space at the end of each page. Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page
 
         rowid, rowid_length = next(record_varints)
-        id_message = f"rowid {rowid}: {payload_size} bytes at {pointer}"
-        logger.debug(id_message)
+        self.id_message = f"rowid {rowid}: {payload_size} bytes at {pointer}"
+        logger.debug(self.id_message)
         self._cell = _buffer(
             page, pointer, payload_size + self.payload_size_length + rowid_length
         )
@@ -51,9 +51,14 @@ class TableLeafCell:
         column_types = list(record_varints.read(header_size - header_size_length))
         logger.debug(f"Rowid {rowid} serial type codes: {column_types}")
 
-        self.columns = []
-        current_location = 0
         body = record_varints.buffer
+        self.columns = list(self._read_columns(column_types, body))
+
+        if self.columns[0] is None:
+            self.columns[0] = rowid
+
+    def _read_columns(self, column_types, body):
+        current_location = 0
         for serial_type_code in column_types:
             try:
                 content, content_size = decode(body, current_location, serial_type_code)
@@ -61,15 +66,13 @@ class TableLeafCell:
                 content = e.message
                 content_size = e.content_size
                 self.errors += 1
-            self.columns.append(content)
             current_location += content_size
+            yield content
         if self.errors != 0:
-            self._log_errors(id_message, current_location)
-        if self.columns[0] is None:
-            self.columns[0] = rowid
+            self._log_errors(current_location)
 
-    def _log_errors(self, id_message, current_location):
-        logger.error(f"{self.errors} cell errors for {id_message}")
+    def _log_errors(self, current_location):
+        logger.error(f"{self.errors} cell errors for {self.id_message}")
         logger.error(f"Cell: {pformat(self._cell, indent=4)}")
         logger.error(f"Record: {pformat(self._record, indent=4)}")
         logger.error(
