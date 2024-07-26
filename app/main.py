@@ -152,6 +152,10 @@ class DbPage:
     def page_offset(self):
         return 100 if self.page_number == 1 else self.page_content_cells_offset
 
+    @property
+    def _cell_content_offset(self):
+        return self.page_offset - self.page_content_cells_offset
+
     def _get_row(self, cell_number):
         cell = TableLeafCell(
             self.page, self.get_cell_content_pointer(cell_number), self.usable_size
@@ -172,7 +176,7 @@ class DbPage:
         cell_offset = _read_integer(
             self.cell_pointer_array, cell * CELL_POINTER_SIZE, CELL_POINTER_SIZE
         )
-        return cell_offset + self.page_content_cells_offset - self.page_offset
+        return cell_offset - self._cell_content_offset
 
     def _read_integer(self, location_in_page, size):
         return _read_integer(self.page, location_in_page, size)
