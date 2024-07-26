@@ -13,35 +13,50 @@ class DecodeError(Exception):
         self.content_size = content_size
 
 
+class VarintReader:
+    def __init__(self, buffer):
+        self.buffer = buffer
+
+    def __next__(self):
+        value, length = varint(self.buffer)
+        self.buffer = self.buffer[length:]
+        return value, length
+
+    def read(self, buffer_size):
+        size = 0
+        while size < buffer_size:
+            value, length = next(self)
+            size += length
+            yield value
+
+
 class TableLeafCell:
     def __init__(self, page, pointer, usable_size):
         self.errors = 0
-        payload_size, self.payload_size_length = varint(page[pointer:])
+        record_varints = VarintReader(page[pointer:])
+        payload_size, self.payload_size_length = next(record_varints)
         assert (
             payload_size <= usable_size - 35
         )  # let U be the usable size of a database page, the total page size less the reserved space at the end of each page. Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page
-        rowid, rowid_length = varint(page[pointer + self.payload_size_length :])
+
+        rowid, rowid_length = next(record_varints)
         id_message = f"rowid {rowid}: {payload_size} bytes at {pointer}"
         logger.debug(id_message)
         self._cell = _buffer(
             page, pointer, payload_size + self.payload_size_length + rowid_length
         )
         self._record = self._cell[self.payload_size_length + rowid_length :]
-        header_size, header_size_length = varint(self._record[0:])
-        column_types = []
-        current_location = header_size_length
-        while current_location < header_size:
-            serial_type, length = varint(self._record[current_location:])
-            current_location += length
-            column_types.append(serial_type)
+        header_size, header_size_length = next(record_varints)
 
+        column_types = list(record_varints.read(header_size - header_size_length))
         logger.debug(f"Rowid {rowid} serial type codes: {column_types}")
+
         self.columns = []
+        current_location = 0
+        body = record_varints.buffer
         for serial_type_code in column_types:
             try:
-                content, content_size = decode(
-                    self._record, current_location, serial_type_code
-                )
+                content, content_size = decode(body, current_location, serial_type_code)
             except DecodeError as e:
                 content = e.message
                 content_size = e.content_size
