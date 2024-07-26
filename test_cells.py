@@ -26,7 +26,7 @@ def test_decode_literal(serial_type_code, expected_value):
 
 def test_decode_bad_unicode():
     with pytest.raises(DecodeError) as exc_info:
-        message, string_length = cells.decode(b"\xb1", 0, 15)
+        cells.decode(b"\xb1", 0, 15)
     assert exc_info
     e = exc_info.value
     assert e.content_size == 1

@@ -25,7 +25,7 @@ class TableLeafCell:
         logger.debug(id_message)
         self._cell = _buffer(
             page, pointer, payload_size + self.payload_size_length + rowid_length
-        )  # TODO: just slice
+        )
         self._record = self._cell[self.payload_size_length + rowid_length :]
         header_size, header_size_length = varint(self._record[0:])
         column_types = []
