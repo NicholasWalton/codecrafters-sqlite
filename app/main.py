@@ -63,6 +63,8 @@ class DbInfo:
             self.number_of_tables = len(self._sqlite_schema)
 
     def find_table(self, requested_name):
+        if requested_name == "sqlite_schema":
+            return self._table(1)
         for type_, name, table_name, rootpage, sql in self._sqlite_schema:
             if type_ == "table" and name.casefold() == requested_name.casefold():
                 return self._table(rootpage)
