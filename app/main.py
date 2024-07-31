@@ -226,9 +226,13 @@ def main():
             print(" ".join(db_info.table_names))
         case _:
             select_count = re.compile(r"SELECT COUNT\(\*\) FROM (\w+)", re.IGNORECASE)
+            select_star = re.compile(r"SELECT \* FROM (\w+)", re.IGNORECASE)
             if (match := select_count.search(command)) is not None:
                 (table_name,) = match.groups()
                 print(len(DbInfo(database_file_path).find_table(table_name).child_rows))
+            elif (match := select_star.search(command)) is not None:
+                (table_name,) = match.groups()
+                print(DbInfo(database_file_path).find_table(table_name).child_rows)
             else:
                 print(f"Invalid command: {command}")
 
