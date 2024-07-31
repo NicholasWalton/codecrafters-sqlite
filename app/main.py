@@ -239,3 +239,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+"""
+[
+    'table',
+    'companies',
+    'companies',
+    2,
+    'CREATE TABLE companies\n(\n\tid integer primary key autoincrement\n, name text, domain text, year_founded text, industry text, "size range" text, locality text, country text, current_employees text, total_employees text)'
+]
+"""
