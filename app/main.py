@@ -90,8 +90,6 @@ class DbPage:
 
     def __init__(self, database_file, page_number=1, page_size=4096, usable_size=4096):
         self._errors = 0
-        self.child_rows = []  # TODO: this is a terrible idea
-        self.children = []
         self._page_size = page_size
         self._usable_size = usable_size
         self.database_file = database_file
@@ -118,17 +116,40 @@ class DbPage:
         )
 
         logging.debug(f"Reading page {self._page_number}")
+
+    @property
+    def child_rows(self):
+        return list(self._generate_child_rows())
+
+    @property
+    def children(self):
+        if self.page_type.is_interior():
+            return list(self._generate_children())
+        else:
+            return []
+
+    def _generate_child_rows(self):
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
-                self.child_rows.append(self._get_row(cell))
+                yield self._get_row(cell)
             if self._errors:
-                self._log_leaf_page_error(page_number)
+                self._log_leaf_page_errors(self.page_number)
         elif self.page_type.is_interior():
             for cell in range(self.number_of_cells):
                 cell_content_pointer = self._cell_content_pointer(cell)
-                self._add_child_at(cell_content_pointer)
+                yield from self._child_at(cell_content_pointer)._generate_child_rows()
 
-            self._add_child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
+            yield from self._child_at(
+                DbPage.RIGHT_MOST_POINTER_OFFSET
+            )._generate_child_rows()
+
+    def _generate_children(self):
+        if self.page_type.is_interior():
+            for cell in range(self.number_of_cells):
+                cell_content_pointer = self._cell_content_pointer(cell)
+                yield self._child_at(cell_content_pointer)
+
+            yield self._child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
 
     def _log_leaf_page_error(self, page_number):
         logger.error(f"{self._errors} errors in page {page_number}")
@@ -181,11 +202,10 @@ class DbPage:
     def _read_integer(self, location_in_page, size):
         return _read_integer(self._page, location_in_page, size)
 
-    def _add_child_at(self, child_page_number_location):
+    def _child_at(self, child_page_number_location):
         child_page_number = self._read_integer(child_page_number_location, 4)
         child_page = DbPage(self.database_file, child_page_number, self._page_size)
-        self.children.append(child_page)
-        self.child_rows += child_page.child_rows
+        return child_page
 
 
 def main():
