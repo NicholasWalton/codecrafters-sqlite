@@ -232,16 +232,12 @@ def main():
             select_count = re.compile(r"SELECT COUNT\(\*\) FROM (\w+)", re.IGNORECASE)
             select_star = re.compile(r"SELECT \* FROM (\w+)", re.IGNORECASE)
             if (match := select_count.search(command)) is not None:
-                import cProfile
-
                 (table_name,) = match.groups()
-                cProfile.run(
-                    f'print(sum(map(len, itertools.batched(DbInfo("{database_file_path}").find_table("{table_name}")._generate_child_rows(), 1000))))'
-                )
+                print(sum(map(len, itertools.batched(DbInfo(database_file_path).find_table(table_name)._generate_child_rows(), 1000))))
             elif (match := select_star.search(command)) is not None:
                 (table_name,) = match.groups()
                 for row in DbInfo(database_file_path).find_table(table_name).child_rows:
-                    print(row[0])
+                    print(row)
             else:
                 print(f"Invalid command: {command}")
 
