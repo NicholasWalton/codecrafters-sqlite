@@ -4,22 +4,30 @@ from app import cells
 from app.cells import TableLeafCell, DecodeError
 
 
-@pytest.mark.parametrize("record,serial_type_code,expected_value,expected_content_size", (
-        pytest.param([0x7f], 1, 127, 1, id="positive_value"),
-        pytest.param([0xff], 1, -1, 1, id="negative_value"),
-))
-def test_decode_integer(record, serial_type_code, expected_value, expected_content_size):
+@pytest.mark.parametrize(
+    "record,serial_type_code,expected_value,expected_content_size",
+    (
+        pytest.param([0x7F], 1, 127, 1, id="positive_value"),
+        pytest.param([0xFF], 1, -1, 1, id="negative_value"),
+    ),
+)
+def test_decode_integer(
+    record, serial_type_code, expected_value, expected_content_size
+):
     assert cells.decode(record, 0, serial_type_code) == (
         expected_value,
         expected_content_size,
     )
 
 
-@pytest.mark.parametrize("serial_type_code,expected_value", (
+@pytest.mark.parametrize(
+    "serial_type_code,expected_value",
+    (
         pytest.param(8, 0, id="literal_zero"),
         pytest.param(9, 1, id="literal_one"),
-        pytest.param(0, None, id="literal_null")
-))
+        pytest.param(0, None, id="literal_null"),
+    ),
+)
 def test_decode_literal(serial_type_code, expected_value):
     assert cells.decode([], 0, serial_type_code) == (expected_value, 0)
 
@@ -40,11 +48,19 @@ def test_bad_unicode_in_cell():
     row_id = 0x00
     header_size = 0x03  # includes self
     one_byte_string_serial_type = (1 * 2) + 13
-    invalid_unicode = 0xb1
+    invalid_unicode = 0xB1
     int8_serial_type = 1
     int8_value = 42
     page = bytearray(
-        [0x00, row_id, header_size, one_byte_string_serial_type, int8_serial_type, invalid_unicode, int8_value]
+        [
+            0x00,
+            row_id,
+            header_size,
+            one_byte_string_serial_type,
+            int8_serial_type,
+            invalid_unicode,
+            int8_value,
+        ]
     )
     page[0] = len(page)
     pointer = 0

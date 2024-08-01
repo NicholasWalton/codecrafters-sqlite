@@ -46,7 +46,9 @@ def children_are_leaves(db_page: DbPage):
 @pytest.mark.parametrize("expected_tables", [1])
 def test_table_names(expected_tables):
     page_one = build_sqlite_schema_table(expected_tables)
-    assert page_one.child_rows == [['table', 'dummy0', 'dummy0', 2, 'CREATE TABLE dummy0 (value int)']]
+    assert page_one.child_rows == [
+        ["table", "dummy0", "dummy0", 2, "CREATE TABLE dummy0 (value int)"]
+    ]
 
 
 @pytest.mark.parametrize("expected_tables", [6])
@@ -101,7 +103,7 @@ def test_empty_last_table(expected_tables):
     sqlite_schema = build_sqlite_schema_table(expected_tables)
     assert len(sqlite_schema.child_rows) == expected_tables
     (type_, name, table_name, rootpage, sql) = sqlite_schema.child_rows[-1]
-    assert type_ == 'table'
-    assert name == f'dummy{expected_tables - 1}'
+    assert type_ == "table"
+    assert name == f"dummy{expected_tables - 1}"
     last_table = DbPage(sqlite_schema.database_file, rootpage, page_size=MIN_PAGE_SIZE)
     assert len(last_table.child_rows) == 0
