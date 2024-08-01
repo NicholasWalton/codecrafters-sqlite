@@ -66,7 +66,7 @@ def test_bad_unicode_in_cell():
     pointer = 0
     usable_size = 35 + len(page)
     cell = TableLeafCell(page, pointer, usable_size)
-    assert cell.errors == 1
     message, actual_int8 = cell.columns
+    assert cell.errors == 1
     assert actual_int8 == int8_value
     assert message.startswith("failed to decode")

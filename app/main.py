@@ -1,3 +1,4 @@
+import itertools
 import logging
 import re
 import struct
@@ -121,7 +122,7 @@ class DbPage:
 
     @property
     def child_rows(self):
-        return list(self._generate_child_rows())
+        return list(cell.columns for cell in self._generate_child_rows())
 
     @property
     def children(self):
@@ -133,7 +134,7 @@ class DbPage:
     def _generate_child_rows(self):
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
-                yield self._get_row(cell)
+                yield self._cell(cell)
             if self._errors:
                 self._log_leaf_page_errors(self.page_number)
         elif self.page_type.is_interior():
@@ -176,10 +177,13 @@ class DbPage:
     def _cell_content_offset(self):
         return self._page_offset - self._page_content_cells_offset
 
-    def _get_row(self, cell_number):
-        cell = TableLeafCell(
+    def _cell(self, cell_number):
+        return TableLeafCell(
             self._page, self._cell_content_pointer(cell_number), self._usable_size
         )
+
+    def _get_row(self, cell_number):
+        cell = self._cell(cell_number)
         logging.debug(f"Cell {cell_number}: {cell.columns[:2]}")
         self._errors += cell.errors
         if cell.errors:
@@ -232,7 +236,7 @@ def main():
 
                 (table_name,) = match.groups()
                 cProfile.run(
-                    f'print(len(DbInfo("{database_file_path}").find_table("{table_name}").child_rows))'
+                    f'print(sum(map(len, itertools.batched(DbInfo("{database_file_path}").find_table("{table_name}")._generate_child_rows(), 1000))))'
                 )
             elif (match := select_star.search(command)) is not None:
                 (table_name,) = match.groups()

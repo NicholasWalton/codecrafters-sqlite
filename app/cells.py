@@ -33,33 +33,44 @@ class VarintReader:
 class TableLeafCell:
     def __init__(self, page, pointer, usable_size):
         self.errors = 0
-        record_varints = VarintReader(page[pointer:])
-        payload_size, self.payload_size_length = next(record_varints)
+        self._pointer = pointer
+        self.page_pointer_ = page[self._pointer :]
+        self.usable_size = usable_size
+
+    def _read_body(self):
+        record_varints = VarintReader(self.page_pointer_)
+        payload_size, payload_size_length = next(record_varints)
         assert (
-            payload_size <= usable_size - 35
+            payload_size <= self.usable_size - 35
         )  # let U be the usable size of a database page, the total page size less the reserved space at the end of each page. Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page
 
-        rowid, rowid_length = next(record_varints)
-        self.id_message = f"rowid {rowid}: {payload_size} bytes at {pointer}"
+        self.rowid, rowid_length = next(record_varints)
+        self.id_message = f"rowid {self.rowid}: {payload_size} bytes at {self._pointer}"
         logger.debug(self.id_message)
         self._cell = _buffer(
-            page, pointer, payload_size + self.payload_size_length + rowid_length
+            self.page_pointer_,
+            0,
+            payload_size + payload_size_length + rowid_length,
         )
-        self._record = self._cell[self.payload_size_length + rowid_length :]
+        self._record = self._cell[payload_size_length + rowid_length :]
         header_size, header_size_length = next(record_varints)
 
-        column_types = list(record_varints.read(header_size - header_size_length))
-        logger.debug(f"Rowid {rowid} serial type codes: {column_types}")
+        serial_type_codes = list(record_varints.read(header_size - header_size_length))
+        logger.debug(f"Rowid {self.rowid} serial type codes: {serial_type_codes}")
 
-        body = record_varints.buffer
-        self.columns = list(self._read_columns(column_types, body))
+        return record_varints.buffer, serial_type_codes
 
-        if self.columns[0] is None:
-            self.columns[0] = rowid
+    @property
+    def columns(self):
+        columns = list(self._read_columns())
+        if columns[0] is None:
+            columns[0] = self.rowid
+        return columns
 
-    def _read_columns(self, column_types, body):
+    def _read_columns(self):
         current_location = 0
-        for serial_type_code in column_types:
+        body, serial_type_codes = self._read_body()
+        for serial_type_code in serial_type_codes:
             try:
                 content, content_size = decode(body, current_location, serial_type_code)
             except DecodeError as e:
@@ -70,6 +81,16 @@ class TableLeafCell:
             yield content
         if self.errors != 0:
             self._log_errors(current_location)
+
+    @property
+    def body(self):
+        body, _ = self._read_body()
+        return body
+
+    @property
+    def serial_type_codes(self):
+        _, result = self._read_body()
+        return result
 
     def _log_errors(self, current_location):
         logger.error(f"{self.errors} cell errors for {self.id_message}")
