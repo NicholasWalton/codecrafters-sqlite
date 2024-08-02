@@ -11,6 +11,8 @@ from pprint import pformat
 from app import _buffer, _read_integer
 from app.cells import TableLeafCell
 
+SAMPLE_DB = "sample.db"
+
 
 class DotCommands(StrEnum):
     DBINFO = ".dbinfo"
@@ -207,36 +209,49 @@ class DbPage:
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    database_file_path = "../sample.db"
+    database_file_path = SAMPLE_DB
     if len(sys.argv) > 1:
         database_file_path = sys.argv[1]
     command = DotCommands.DBINFO
     if len(sys.argv) > 2:
         command = sys.argv[2]
 
+    db_info = DbInfo(database_file_path)
     match command:
         case DotCommands.DBINFO:
-            db_info = DbInfo(database_file_path)
             print(f"database page size: {db_info.page_size}")
             print(f"number of tables: {db_info.number_of_tables}")
         case DotCommands.TABLES:
-            db_info = DbInfo(database_file_path)
             print(" ".join(db_info.table_names))
         case _:
-            select_count = re.compile(r"SELECT COUNT\(\*\) FROM (\w+)", re.IGNORECASE)
-            select_star = re.compile(r"SELECT \* FROM (\w+)", re.IGNORECASE)
-            if (match := select_count.search(command)) is not None:
-                (table_name,) = match.groups()
-                print(sum(map(len, itertools.batched(DbInfo(database_file_path).find_table(table_name)._generate_child_rows(), 1000))))
-            elif (match := select_star.search(command)) is not None:
-                (table_name,) = match.groups()
-                for row in DbInfo(database_file_path).find_table(table_name).child_rows:
-                    print(bytearray(str(row), encoding="utf-8"))
-            else:
-                print(f"Invalid command: {command}")
+            for line in handle(command, database_file_path):
+                print(line)
+
+
+def handle(sql, database_file_path):
+    """Handle a SQL query
+
+    >>> list(handle("select count(*) from apples", SAMPLE_DB))
+    [4]
+    >>> list(handle("select * from apples", SAMPLE_DB))
+    [[1, 'Granny Smith', 'Light Green'], [2, 'Fuji', 'Red'], [3, 'Honeycrisp', 'Blush Red'], [4, 'Golden Delicious', 'Yellow']]
+    """
+    db_info = DbInfo(database_file_path)
+    select_count = re.compile(r"SELECT COUNT\(\*\) FROM (\w+)", re.IGNORECASE)
+    select_star = re.compile(r"SELECT \* FROM (\w+)", re.IGNORECASE)
+    if (match := select_count.search(sql)) is not None:
+        (table_name,) = match.groups()
+        yield sum(map(len, itertools.batched(db_info.find_table(table_name)._generate_child_rows(), 1000)))
+    elif (match := select_star.search(sql)) is not None:
+        (table_name,) = match.groups()
+        yield from db_info.find_table(table_name).child_rows
+    else:
+        yield f"Invalid command: {sql}"
 
 
 if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding='utf-8')
     main()
 
 """
