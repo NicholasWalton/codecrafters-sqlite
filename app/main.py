@@ -231,7 +231,7 @@ def main():
             elif (match := select_star.search(command)) is not None:
                 (table_name,) = match.groups()
                 for row in DbInfo(database_file_path).find_table(table_name).child_rows:
-                    print(row)
+                    print(bytearray(str(row), encoding="utf-8"))
             else:
                 print(f"Invalid command: {command}")
 
