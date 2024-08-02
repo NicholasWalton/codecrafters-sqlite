@@ -88,4 +88,6 @@ def test_rowid():
     pointer = 0
     usable_size = 35 + len(page)
     cell = TableLeafCell(page, pointer, usable_size)
-    assert cell.columns == [row_id, ]
+    assert cell.columns == [
+        row_id,
+    ]

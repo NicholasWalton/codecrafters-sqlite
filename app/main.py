@@ -235,18 +235,29 @@ def handle(sql, database_file_path):
     [4]
     >>> list(handle("select * from apples", SAMPLE_DB))
     [[1, 'Granny Smith', 'Light Green'], [2, 'Fuji', 'Red'], [3, 'Honeycrisp', 'Blush Red'], [4, 'Golden Delicious', 'Yellow']]
+    >>> list(handle("select name from apples", SAMPLE_DB))
+    ['Granny Smith', 'Fuji', 'Honeycrisp', 'Golden Delicious']
     """
     db_info = DbInfo(database_file_path)
-    select_count = re.compile(r"SELECT COUNT\(\*\) FROM (\w+)", re.IGNORECASE)
-    select_star = re.compile(r"SELECT \* FROM (\w+)", re.IGNORECASE)
+    select_count = re.compile(
+        r"SELECT COUNT\(\*\) FROM (?P<table_name>\w+)", re.IGNORECASE
+    )
+    select_star = re.compile(r"SELECT \* FROM (?P<table_name>\w+)", re.IGNORECASE)
+    select_column = re.compile(
+        r"SELECT (?P<column>\w+) FROM (?P<table_name>\w+)", re.IGNORECASE
+    )
     if (match := select_count.search(sql)) is not None:
-        (table_name,) = match.groups()
+        table_name = match.group("table_name")
         child_rows = db_info.find_table(table_name)._generate_child_rows()
         batched = itertools.batched(child_rows, 1000)
         yield sum(map(len, batched))
     elif (match := select_star.search(sql)) is not None:
-        (table_name,) = match.groups()
+        table_name = match.group("table_name")
         yield from db_info.find_table(table_name).child_rows
+    elif (match := select_column.search(sql)) is not None:
+        table_name = match.group("table_name")
+        column_name = match.group("column")
+        yield from (row[1] for row in db_info.find_table(table_name).child_rows)
     else:
         yield f"Invalid command: {sql}"
 
