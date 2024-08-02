@@ -70,3 +70,22 @@ def test_bad_unicode_in_cell():
     assert cell.errors == 1
     assert actual_int8 == int8_value
     assert message.startswith("failed to decode")
+
+
+def test_rowid():
+    row_id = 0x01
+    header_size = 0x02  # includes self
+    literal_null = 0x00
+    page = bytearray(
+        [
+            0x00,
+            row_id,
+            header_size,
+            literal_null,
+        ]
+    )
+    page[0] = len(page)
+    pointer = 0
+    usable_size = 35 + len(page)
+    cell = TableLeafCell(page, pointer, usable_size)
+    assert cell.columns == [row_id, ]
