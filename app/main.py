@@ -241,7 +241,9 @@ def handle(sql, database_file_path):
     select_star = re.compile(r"SELECT \* FROM (\w+)", re.IGNORECASE)
     if (match := select_count.search(sql)) is not None:
         (table_name,) = match.groups()
-        yield sum(map(len, itertools.batched(db_info.find_table(table_name)._generate_child_rows(), 1000)))
+        child_rows = db_info.find_table(table_name)._generate_child_rows()
+        batched = itertools.batched(child_rows, 1000)
+        yield sum(map(len, batched))
     elif (match := select_star.search(sql)) is not None:
         (table_name,) = match.groups()
         yield from db_info.find_table(table_name).child_rows
@@ -251,7 +253,8 @@ def handle(sql, database_file_path):
 
 if __name__ == "__main__":
     import sys
-    sys.stdout.reconfigure(encoding='utf-8')
+
+    sys.stdout.reconfigure(encoding="utf-8")
     main()
 
 """
