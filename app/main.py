@@ -129,13 +129,13 @@ class DbPage:
         return list(self._generate_children())
 
     def _generate_child_rows(self):
+        for child_page in self._generate_children():
+            yield from child_page._generate_child_rows()
         if self.page_type.is_leaf():
             for cell in range(self.number_of_cells):
                 yield self._cell(cell)
             if self._errors:
                 self._log_leaf_page_errors(self.page_number)
-        for child_page in self._generate_children():
-            yield from child_page._generate_child_rows()
 
     def _generate_children(self):
         if self.page_type.is_interior():
