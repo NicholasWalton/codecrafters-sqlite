@@ -126,10 +126,7 @@ class DbPage:
 
     @property
     def children(self):
-        if self.page_type.is_interior():
-            return list(self._generate_children())
-        else:
-            return []
+        return list(self._generate_children())
 
     def _generate_child_rows(self):
         if self.page_type.is_leaf():
@@ -137,9 +134,8 @@ class DbPage:
                 yield self._cell(cell)
             if self._errors:
                 self._log_leaf_page_errors(self.page_number)
-        elif self.page_type.is_interior():
-            for child_page in self._generate_children():
-                yield from child_page._generate_child_rows()
+        for child_page in self._generate_children():
+            yield from child_page._generate_child_rows()
 
     def _generate_children(self):
         if self.page_type.is_interior():
@@ -148,8 +144,6 @@ class DbPage:
                 yield self._child_at(cell_content_pointer)
 
             yield self._child_at(DbPage.RIGHT_MOST_POINTER_OFFSET)
-        else:
-            raise StopIteration
 
     def _log_leaf_page_error(self, page_number):
         logger.error(f"{self._errors} errors in page {page_number}")
