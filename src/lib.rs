@@ -6,9 +6,16 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
     Ok((a + b).to_string())
 }
 
+#[pyfunction]
+fn varint(buffer: &[u8]) -> PyResult<u64> {
+    println!("Hello {buffer:?}");
+    return Ok(0)
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn codecrafters_sqlite(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    m.add_function(wrap_pyfunction!(varint, m)?)?;
     Ok(())
 }
