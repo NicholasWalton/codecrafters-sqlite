@@ -54,36 +54,36 @@ mod test {
 
     #[test]
     fn zero() {
-        assert_eq!(varint(vec![0]).unwrap().0, 0i64);
+        assert_varint_decodes_to(vec![0], 0i64);
     }
 
     #[test]
     fn one() {
-        assert_eq!(varint(vec![1]).unwrap().0, 1i64);
+        assert_varint_decodes_to(vec![1], 1i64);
     }
 
     #[test]
     fn eight_bits() {
-        assert_eq!(varint(vec![0b1000_0001, 0b0000_0000]).unwrap().0, 128i64);
+        assert_varint_decodes_to(vec![0b1000_0001, 0b0000_0000], 128i64);
     }
 
     #[test]
     fn nine_bytes() {
-        assert_eq!(
-            varint(vec![
-                0b1000_0001,
-                0b1000_0000,
-                0b1000_0000,
-                0b1000_0000,
-                0b1000_0000,
-                0b1000_0000,
-                0b1000_0000,
-                0b1000_0000,
-                0b0000_0000,
-            ])
-            .unwrap()
-            .0,
-            1 << 57
-        );
+        let buffer = vec![
+            0b1000_0001,
+            0b1000_0000,
+            0b1000_0000,
+            0b1000_0000,
+            0b1000_0000,
+            0b1000_0000,
+            0b1000_0000,
+            0b1000_0000,
+            0b0000_0000,
+        ];
+        assert_varint_decodes_to(buffer, 1 << 57);
+    }
+
+    fn assert_varint_decodes_to(buffer: Vec<u8>, expected: i64) {
+        assert_eq!(varint(buffer).unwrap().0, expected)
     }
 }
