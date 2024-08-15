@@ -19,6 +19,19 @@ def test_tables_in_sample():
     db_info = DbInfo("sample.db")
     assert db_info.number_of_tables == 3
     assert db_info.table_names == ["apples", "oranges"]
+    assert db_info.find_table("apples").child_rows[0] == [1, 'Granny Smith', 'Light Green']
+    assert db_info.find_column("apples", "name") == 1
+    assert db_info.find_column("apples", "color") == 2
+
+def test_extract_column_names():
+    type_, name, table_name, rootpage, sql = [
+        'table',
+        'companies',
+        'companies',
+        2,
+        'CREATE TABLE companies\n(\n\tid integer primary key autoincrement\n, name text, domain text, year_founded text, industry text, "size range" text, locality text, country text, current_employees text, total_employees text)'
+    ]
+    assert DbInfo.get_columns(sql) == ['id', 'name', 'domain']    
 
 
 @pytest.mark.parametrize(
