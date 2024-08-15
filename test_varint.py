@@ -1,7 +1,6 @@
 import pytest
 
 from app.varint import varint
-# from codecrafters_sqlite import varint as rust_varint
 
 def huffman_decode(buffer, huffman_length=9):
     value, _ = varint(buffer, huffman_length)
