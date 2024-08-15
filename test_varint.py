@@ -1,6 +1,9 @@
+from timeit import timeit
+
 import pytest
 
 from app.varint import varint
+
 
 def huffman_decode(buffer, huffman_length=9):
     value, _ = varint(buffer, huffman_length)
@@ -109,3 +112,17 @@ def test_ok_varint(low_byte):
     value, length = varint(bytearray((0x80, low_byte, 0xB5, ord("n"), 0x0C)))
     assert length == 2
     assert value == low_byte
+
+
+def test_timeit():
+    stmt = f"""
+for low_byte in range(0, 0xFF):
+    buffer = bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
+    assert low_byte == varint(buffer)[0]
+"""
+    setup = "from app.varint import varint"
+    timeit(
+        stmt,
+        setup,
+        number=1000,
+    )
