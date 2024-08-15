@@ -77,6 +77,11 @@ class DbInfo:
             self.database_mmap, page_number=rootpage, page_size=self.page_size
         )
 
+    def find_column(self, table, column):
+        for type_, name, table_name, rootpage, sql in self._sqlite_schema:
+            if type_ == "table" and name.casefold() == table.casefold():
+                return sql
+
 
 def extract_table_names(sqlite_schema):
     return [
@@ -237,6 +242,8 @@ def handle(sql, database_file_path):
     [[1, 'Granny Smith', 'Light Green'], [2, 'Fuji', 'Red'], [3, 'Honeycrisp', 'Blush Red'], [4, 'Golden Delicious', 'Yellow']]
     >>> list(handle("select name from apples", SAMPLE_DB))
     ['Granny Smith', 'Fuji', 'Honeycrisp', 'Golden Delicious']
+    >>> list(handle("select color from apples", SAMPLE_DB))
+    ['Light Green', 'Red', 'Blush Red', 'Yellow']
     """
     db_info = DbInfo(database_file_path)
     select_count = re.compile(
@@ -247,19 +254,25 @@ def handle(sql, database_file_path):
         r"SELECT (?P<column>\w+) FROM (?P<table_name>\w+)", re.IGNORECASE
     )
     if (match := select_count.search(sql)) is not None:
-        table_name = match.group("table_name")
-        child_rows = db_info.find_table(table_name)._generate_child_rows()
+        table = _get_table(db_info, match)
+        child_rows = table._generate_child_rows()
         batched = itertools.batched(child_rows, 1000)
         yield sum(map(len, batched))
     elif (match := select_star.search(sql)) is not None:
-        table_name = match.group("table_name")
-        yield from db_info.find_table(table_name).child_rows
+        table = _get_table(db_info, match)
+        yield from table.child_rows
     elif (match := select_column.search(sql)) is not None:
-        table_name = match.group("table_name")
+        table = _get_table(db_info, match)
         column_name = match.group("column")
-        yield from (row[1] for row in db_info.find_table(table_name).child_rows)
+        yield from (row[1] for row in table.child_rows)
     else:
         yield f"Invalid command: {sql}"
+
+
+def _get_table(db_info, match):
+    table_name = match.group("table_name")
+    table = db_info.find_table(table_name)
+    return table
 
 
 if __name__ == "__main__":
@@ -268,12 +281,3 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     main()
 
-"""
-[
-    'table',
-    'companies',
-    'companies',
-    2,
-    'CREATE TABLE companies\n(\n\tid integer primary key autoincrement\n, name text, domain text, year_founded text, industry text, "size range" text, locality text, country text, current_employees text, total_employees text)'
-]
-"""
