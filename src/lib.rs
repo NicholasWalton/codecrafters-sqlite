@@ -1,11 +1,5 @@
 use pyo3::prelude::*;
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
-}
-
 const HUFFMAN_LENGTH: usize = 9;
 
 #[pyfunction]
@@ -50,7 +44,6 @@ fn _lower7(byte: &u8) -> u8 {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn codecrafters_sqlite(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_function(wrap_pyfunction!(varint, m)?)?;
     Ok(())
 }
