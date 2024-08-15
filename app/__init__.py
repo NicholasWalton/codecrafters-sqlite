@@ -5,4 +5,5 @@ def _read_integer(bytes_, offset, size, **kwargs):
 def _buffer(sequence, start, size):
     return sequence[start : start + size]
 
+
 from .main import main, handle
