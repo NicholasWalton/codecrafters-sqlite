@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 const HUFFMAN_LENGTH: usize = 9;
 
 #[pyfunction]
-fn varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
+fn decode_varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
     let mut acc = 0i64;
 
     let byte_index = decode_leading_bytes(&buffer, &mut acc);
@@ -45,13 +45,13 @@ fn _lower7(byte: u8) -> u8 {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn codecrafters_sqlite(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(varint, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_varint, m)?)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
-    use crate::varint;
+    use crate::decode_varint;
 
     #[test]
     fn zero() {
@@ -85,6 +85,6 @@ mod test {
     }
 
     fn assert_varint_decodes_to(buffer: Vec<u8>, expected: i64) {
-        assert_eq!(varint(buffer).unwrap().0, expected)
+        assert_eq!(decode_varint(buffer).unwrap().0, expected)
     }
 }

@@ -2,7 +2,7 @@ import logging
 from pprint import pformat
 
 from app import _buffer, _read_integer
-from app.varint import varint
+from app.varint import decode_varint
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class VarintReader:
         self.buffer = buffer
 
     def __next__(self):
-        value, length = varint(self.buffer)
+        value, length = decode_varint(self.buffer)
         self.buffer = self.buffer[length:]
         return value, length
 

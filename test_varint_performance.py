@@ -4,19 +4,18 @@ from timeit import timeit
 
 import pytest
 
-from app.varint import varint
-from codecrafters_sqlite import varint as rust_varint
+from codecrafters_sqlite import decode_varint as rust_decode_varint
 
 def main():
     print(f"Python: {test_python()} sec")
     print(f"Rust:   {test_rust()} sec")
 
 def test_python():
-    setup = "from app.varint import varint"
+    setup = "from app.varint import decode_varint"
     nine_byte_varints(setup)
 
 def test_rust():
-    setup = "from codecrafters_sqlite import varint"
+    setup = "from codecrafters_sqlite import decode_varint"
     nine_byte_varints(setup)
 
 @pytest.fixture()
@@ -35,7 +34,7 @@ def test_read_file(varint_file: Path):
     assert contents[8] == 0
 
     for expected, read_bytes in enumerate(itertools.batched(contents, 9)):
-        value, length = rust_varint(read_bytes)
+        value, length = rust_decode_varint(read_bytes)
         assert value == expected
         assert length == 9
 
@@ -47,7 +46,7 @@ def nine_byte_varints(setup):
     stmt = """
 for low_byte in range(0, 0xFF):
     buffer = bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
-    value, length = varint(buffer)
+    value, length = decode_varint(buffer)
     assert low_byte == value
     assert length == 9
 """
