@@ -1,7 +1,6 @@
 import doctest
 
-from app import main
-
+import app
 
 def test_docstring():
-    assert doctest.testmod(m=main).failed == 0
+    assert doctest.testmod(m=app).failed == 0
