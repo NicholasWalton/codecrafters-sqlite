@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.varint import decode_varint

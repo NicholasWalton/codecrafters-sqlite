@@ -6,23 +6,28 @@ import pytest
 
 from codecrafters_sqlite import decode_varint as rust_decode_varint
 
+
 def main():
     print(f"Python: {test_python()} sec")
     print(f"Rust:   {test_rust()} sec")
+
 
 def test_python():
     setup = "from app.varint import decode_varint"
     nine_byte_varints(setup)
 
+
 def test_rust():
     setup = "from codecrafters_sqlite import decode_varint"
     nine_byte_varints(setup)
+
 
 @pytest.fixture()
 def varint_file(tmp_path):
     bytes_to_write = b"".join(buffer for buffer in generate_bytes())
     (tmp_path / "varints.bin").write_bytes(bytes_to_write)
-    return (tmp_path / "varints.bin")
+    return tmp_path / "varints.bin"
+
 
 def test_read_file(varint_file: Path):
     contents = varint_file.read_bytes()
@@ -38,9 +43,11 @@ def test_read_file(varint_file: Path):
         assert value == expected
         assert length == 9
 
+
 def generate_bytes():
     for low_byte in range(0, 0xFF):  # 0 -> 255
         yield bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
+
 
 def nine_byte_varints(setup):
     stmt = """
@@ -56,5 +63,6 @@ for low_byte in range(0, 0xFF):
         number=1000,
     )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     pytest.pytest()
