@@ -1,11 +1,6 @@
 VARINT_LENGTH = 9
 
-from codecrafters_sqlite import varint as rust_varint
-
-
 def varint(buffer, huffman_length=VARINT_LENGTH):
-    if huffman_length == VARINT_LENGTH:
-        return rust_varint(buffer)
     unsigned = 0
 
     for byte_index in range(
