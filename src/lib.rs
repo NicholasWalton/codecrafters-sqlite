@@ -24,9 +24,10 @@ fn decode_leading_bytes(buffer: &Vec<u8>, acc: &mut i64) -> usize {
     // zero or more bytes which have the high-order bit set
     for byte_index in 0..HUFFMAN_LENGTH - 1 {
         // The lower seven bits of each of the first n-1 byte
-        *acc = (*acc << 7) + i64::from(_lower7(*buffer.get(byte_index).unwrap()));
+        let current_byte = *buffer.get(byte_index).unwrap();
+        *acc = (*acc << 7) + i64::from(_lower7(current_byte));
         // including a single end byte with the high-order bit clear
-        if 0 == _high_bit(*buffer.get(byte_index).unwrap()) {
+        if 0 == _high_bit(current_byte) {
             return byte_index;
         }
     }
