@@ -44,11 +44,10 @@ def generate_bytes():
         yield bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
 
 def nine_byte_varints(setup):
-    stmt = f"""
+    stmt = """
 for low_byte in range(0, 0xFF):
     buffer = bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
     value, length = varint(buffer)
-    assert False
     assert low_byte == value
     assert length == 9
 """
