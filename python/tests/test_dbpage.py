@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from app.main import MIN_PAGE_SIZE, DbPage
+from codecrafters_sqlite.main import MIN_PAGE_SIZE, DbPage
 
 TABLE_INTERIOR = 5
 TABLE_LEAF = 13

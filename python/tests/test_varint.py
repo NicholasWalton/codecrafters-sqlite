@@ -1,6 +1,6 @@
 import pytest
 
-from app.varint import decode_varint
+from codecrafters_sqlite.varint import decode_varint
 
 
 def huffman_decode(buffer, huffman_length=9):

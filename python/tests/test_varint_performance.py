@@ -4,7 +4,7 @@ from timeit import timeit
 
 import pytest
 
-from codecrafters_sqlite import decode_varint as rust_decode_varint
+from codecrafters_sqlite._lowlevel import decode_varint as rust_decode_varint
 
 
 def main():
@@ -13,12 +13,12 @@ def main():
 
 
 def test_python():
-    setup = "from app.varint import decode_varint"
+    setup = "from codecrafters_sqlite.varint import decode_varint"
     nine_byte_varints(setup)
 
 
 def test_rust():
-    setup = "from codecrafters_sqlite import decode_varint"
+    setup = "from codecrafters_sqlite._lowlevel import decode_varint"
     nine_byte_varints(setup)
 
 

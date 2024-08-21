@@ -44,7 +44,7 @@ fn _lower7(byte: u8) -> u8 {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn codecrafters_sqlite(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _lowlevel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(decode_varint, m)?)?;
     Ok(())
 }
