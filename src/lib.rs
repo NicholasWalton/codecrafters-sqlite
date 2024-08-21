@@ -2,7 +2,6 @@ use pyo3::prelude::*;
 
 const HUFFMAN_LENGTH: usize = 9;
 
-
 #[pyfunction]
 pub fn add_one(x: i64) -> i64 {
     x + 1
@@ -62,7 +61,6 @@ fn _lower7(byte: u8) -> u8 {
 pub fn _lowlevel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(decode_varint, m)?)
 }
-
 
 #[cfg(test)]
 mod test {
