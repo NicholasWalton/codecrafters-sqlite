@@ -2,8 +2,23 @@ use pyo3::prelude::*;
 
 const HUFFMAN_LENGTH: usize = 9;
 
+
 #[pyfunction]
-fn decode_varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
+pub fn add_one(x: i64) -> i64 {
+    x + 1
+}
+
+#[pymodule]
+pub fn foo(foo_module: &Bound<'_, PyModule>) -> PyResult<()> {
+    foo_module.add_function(wrap_pyfunction!(add_one, foo_module)?)
+}
+
+#[pyfunction]
+pub fn decode_varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
+    decode_varint_inner(&buffer)
+}
+
+pub fn decode_varint_inner(buffer: &Vec<u8>) -> PyResult<(i64, usize)> {
     let mut acc = 0i64;
 
     let byte_index = decode_leading_bytes(&buffer, &mut acc);
@@ -44,10 +59,10 @@ fn _lower7(byte: u8) -> u8 {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn _lowlevel(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(decode_varint, m)?)?;
-    Ok(())
+pub fn _lowlevel(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(decode_varint, m)?)
 }
+
 
 #[cfg(test)]
 mod test {

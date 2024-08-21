@@ -6,6 +6,14 @@ import pytest
 
 from codecrafters_sqlite._lowlevel import decode_varint as rust_decode_varint
 
+import codecrafters_sqlite
+
+
+# import rust_codecrafters_sqlite
+
+
+# from .codecrafters_sqlite
+
 
 def main():
     print(f"Python: {test_python()} sec")
@@ -13,12 +21,12 @@ def main():
 
 
 def test_python():
-    setup = "from codecrafters_sqlite.varint import decode_varint"
+    setup = "import codecrafters_sqlite.varint as varint"
     nine_byte_varints(setup)
 
 
 def test_rust():
-    setup = "from codecrafters_sqlite._lowlevel import decode_varint"
+    setup = "import codecrafters_sqlite._lowlevel as varint"
     nine_byte_varints(setup)
 
 
@@ -39,7 +47,7 @@ def test_read_file(varint_file: Path):
     assert contents[8] == 0
 
     for expected, read_bytes in enumerate(itertools.batched(contents, 9)):
-        value, length = rust_decode_varint(read_bytes)
+        value, length = codecrafters_sqlite.varint.decode_varint(read_bytes)
         assert value == expected
         assert length == 9
 
@@ -53,7 +61,7 @@ def nine_byte_varints(setup):
     stmt = """
 for low_byte in range(0, 0xFF):
     buffer = bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
-    value, length = decode_varint(buffer)
+    value, length = varint.decode_varint(buffer)
     assert low_byte == value
     assert length == 9
 """
