@@ -5,7 +5,8 @@
 
 ```bash
 rye sync
-rye build  # this will run maturin
+rye build
+maturin develop --skip-install --release
 rye test
 cargo run --bin run_perf_test --release
 ```
