@@ -1,14 +1,13 @@
 use std::path::Path;
 
-use ::codecrafters_sqlite::decode_varint;
+use codecrafters_sqlite::_lowlevel;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
+use pyo3::wrap_pymodule;
 
 #[pymodule]
 fn rust_codecrafters_sqlite(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
-    let child_module = PyModule::new_bound(parent_module.py(), "_lowlevel")?;
-    child_module.add_function(wrap_pyfunction!(decode_varint, &child_module)?)?;
-    parent_module.add_submodule(&child_module)
+    parent_module.add_wrapped(wrap_pymodule!(_lowlevel))
 }
 
 fn main() -> PyResult<()> {

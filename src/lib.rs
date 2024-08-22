@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 const HUFFMAN_LENGTH: usize = 9;
 
 #[pyfunction]
-pub fn decode_varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
+fn decode_varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
     let mut acc = 0i64;
 
     let byte_index = decode_leading_bytes(&buffer, &mut acc);
