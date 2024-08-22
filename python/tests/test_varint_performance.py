@@ -1,18 +1,9 @@
 import itertools
 from pathlib import Path
 from timeit import timeit
-
 import pytest
 
-from codecrafters_sqlite._lowlevel import decode_varint as rust_decode_varint
-
 import codecrafters_sqlite
-
-
-# import rust_codecrafters_sqlite
-
-
-# from .codecrafters_sqlite
 
 
 def main():

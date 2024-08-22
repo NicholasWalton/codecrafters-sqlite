@@ -10,7 +10,6 @@ crate-type = [
     "cdylib",
     "lib",
 ]
-#path = "src/lib.rs"
 
 [[bin]]
 name = "run_perf_test"
