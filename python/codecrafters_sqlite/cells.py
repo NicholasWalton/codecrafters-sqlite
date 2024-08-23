@@ -1,8 +1,8 @@
 import logging
 from pprint import pformat
 
-from app import _buffer, _read_integer
-from app.varint import decode_varint
+from codecrafters_sqlite import _buffer, _read_integer
+from codecrafters_sqlite.varint import decode_varint
 
 logger = logging.getLogger(__name__)
 

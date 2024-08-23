@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from app.main import MIN_PAGE_SIZE, DbInfo, extract_table_names
+from codecrafters_sqlite.main import MIN_PAGE_SIZE, DbInfo, extract_table_names
 from test_dbpage import build_test_database
 
 DEFAULT_PAGE_SIZE = 4096

@@ -8,8 +8,8 @@ from enum import IntEnum, StrEnum
 from mmap import ACCESS_READ, mmap
 from pprint import pformat
 
-from app import _buffer, _read_integer
-from app.cells import TableLeafCell
+from codecrafters_sqlite import _buffer, _read_integer
+from codecrafters_sqlite.cells import TableLeafCell
 
 SAMPLE_DB = "sample.db"
 
