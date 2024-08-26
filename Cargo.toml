@@ -13,7 +13,7 @@ crate-type = [
 
 [[bin]]
 name = "run_perf_test"
-path = "src/bin.rs"
+path = "src/run_perf_test.rs"
 
 [dependencies.pyo3]
 version = "0.22.0"

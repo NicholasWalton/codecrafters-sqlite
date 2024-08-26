@@ -58,10 +58,11 @@ def test_mmap(varint_file, decoder_to_test):
 
 @pytest.mark.parametrize(*test_cases)
 def test_short_mmap(varint_file, decoder_to_test):
+    slice_and_decode = lambda varint_mmap: decoder_to_test(varint_mmap[:SQLITE_I64_VARINT_LENGTH + 1])
     timeit(
         lambda: assert_mmap(
             varint_file=varint_file,
-            decoder_to_test=lambda varint_mmap: decoder_to_test(varint_mmap[:SQLITE_I64_VARINT_LENGTH + 1]),
+            decoder_to_test=slice_and_decode,
         ),
         number=NUMBER,
     )
