@@ -6,6 +6,10 @@ import pytest
 from pathlib import Path
 from timeit import timeit
 
+SQLITE_I64_VARINT_LENGTH = 9
+
+NUMBER = 1000
+
 test_cases = (
     "decoder_to_test",
     (
@@ -31,20 +35,18 @@ def generate_varints():
 # Theory: Rust is slower here because we pass in `bytes` instead of `bytearray`, leading to a copy
 @pytest.mark.parametrize(*test_cases)
 def test_read_bytes(varint_file: Path, decoder_to_test):
-    timeit(lambda: assert_read_bytes(varint_file, decoder_to_test), number=1000)
+    timeit(lambda: assert_read_bytes(varint_file, decoder_to_test), number=NUMBER)
 
 
 def assert_read_bytes(varint_file, decoder_to_test):
     contents = varint_file.read_bytes()
-    assert not (len(contents) % 9)
-    assert len(contents) == 9 * 0xFF
+    assert not (len(contents) % SQLITE_I64_VARINT_LENGTH)
+    assert len(contents) == SQLITE_I64_VARINT_LENGTH * 0xFF
     # Assert the 9th byte is 0 because the first time in our iterator it definitely
     # should be 0
-    assert contents[8] == 0
-    for expected, read_bytes in enumerate(itertools.batched(contents, 9)):
-        value, length = decoder_to_test(read_bytes)
-        assert value == expected
-        assert length == 9
+    assert contents[SQLITE_I64_VARINT_LENGTH - 1] == 0
+    for expected, read_bytes in enumerate(itertools.batched(contents, SQLITE_I64_VARINT_LENGTH)):
+        assert_decode(read_bytes, decoder_to_test, expected)
 
 
 @pytest.mark.parametrize(*test_cases)
@@ -60,7 +62,7 @@ def test_short_mmap(varint_file, decoder_to_test):
     timeit(
         lambda: assert_mmap(
             varint_file=varint_file,
-            decoder_to_test=lambda varint_mmap: decoder_to_test(varint_mmap[:10]),
+            decoder_to_test=lambda varint_mmap: decoder_to_test(varint_mmap[:SQLITE_I64_VARINT_LENGTH + 1]),
         ),
         number=100,
     )
@@ -71,9 +73,7 @@ def assert_mmap(varint_file, decoder_to_test):
         varint_mmap = mmap(varint_file.fileno(), 0, access=ACCESS_READ)
         varint_mmap = varint_mmap[:]  # Rust impl expects a slice every time
         for low_byte in range(0, 0xFF):  # 0 -> 255
-            value, length = decoder_to_test(varint_mmap)
-            assert value == low_byte
-            assert length == 9
+            length = assert_decode(varint_mmap, decoder_to_test, low_byte)
             varint_mmap = varint_mmap[length:]
 
 
@@ -81,15 +81,20 @@ def assert_mmap(varint_file, decoder_to_test):
 def test_in_memory(decoder_to_test):
     timeit(
         lambda: assert_nine_byte_varints(decoder_to_test),
-        number=1000,
+        number=NUMBER,
     )
 
 
 def assert_nine_byte_varints(decoder_to_test):
     for buffer in generate_varints():
-        value, length = decoder_to_test(buffer)
-        assert buffer[-1] == value
-        assert length == 9
+        assert_decode(buffer, decoder_to_test, buffer[-1])
+
+
+def assert_decode(buffer, decoder_to_test, expected):
+    value, length = decoder_to_test(buffer)
+    assert expected == value
+    assert length == SQLITE_I64_VARINT_LENGTH
+    return length
 
 
 if __name__ == "__main__":
