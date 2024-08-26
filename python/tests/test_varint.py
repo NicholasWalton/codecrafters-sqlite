@@ -1,6 +1,7 @@
 import pytest
 
 from codecrafters_sqlite.varint import decode_varint
+from codecrafters_sqlite._lowlevel import decode_varint as rust_decode_varint
 
 
 def huffman_decode(buffer, huffman_length=9):
@@ -108,5 +109,23 @@ def test_problem_varint(low_byte):
 @pytest.mark.parametrize("low_byte", range(0, 127))
 def test_ok_varint(low_byte):
     value, length = decode_varint(bytearray((0x80, low_byte, 0xB5, ord("n"), 0x0C)))
+    assert length == 2
+    assert value == low_byte
+
+
+@pytest.mark.parametrize("low_byte", range(0, 127))
+def test_rust_problem_varint(low_byte):
+    value, length = rust_decode_varint(
+        bytearray((0x81, low_byte, 0xB5, ord("n"), 0x0C))
+    )
+    assert length == 2
+    assert value == 0x80 + low_byte
+
+
+@pytest.mark.parametrize("low_byte", range(0, 127))
+def test_rust_ok_varint(low_byte):
+    value, length = rust_decode_varint(
+        bytearray((0x80, low_byte, 0xB5, ord("n"), 0x0C))
+    )
     assert length == 2
     assert value == low_byte

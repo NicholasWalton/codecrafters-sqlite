@@ -44,9 +44,8 @@ fn _lower7(byte: u8) -> u8 {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn _lowlevel(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(decode_varint, m)?)?;
-    Ok(())
+pub fn _lowlevel(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(decode_varint, m)?)
 }
 
 #[cfg(test)]

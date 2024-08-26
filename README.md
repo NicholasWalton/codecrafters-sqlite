@@ -1,42 +1,19 @@
-[![progress-banner](https://backend.codecrafters.io/progress/sqlite/1f051f28-53b9-4cbf-bb96-5a03e6a86246)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+## Getting started
 
-This is a starting point for Python solutions to the
-["Build Your Own SQLite" Challenge](https://codecrafters.io/challenges/sqlite).
+* Install [Rye](https://rye.astral.sh/). Rye is a new-ish Python project and package manager that is modeled on `cargo`.
+  It also includes a linter ([ruff](https://github.com/astral-sh/ruff)) and a code formatter (black).
 
-In this challenge, you'll build a barebones SQLite implementation that supports
-basic SQL queries like `SELECT`. Along the way we'll learn about
-[SQLite's file format](https://www.sqlite.org/fileformat.html), how indexed data
-is
-[stored in B-trees](https://jvns.ca/blog/2014/10/02/how-does-sqlite-work-part-2-btrees/)
-and more.
-
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
-
-# Passing the first stage
-
-The entry point for your SQLite implementation is in `app/main.py`. Study and
-uncomment the relevant code, and push your changes to pass the first stage:
-
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
+```bash
+rye sync
+rye build
+maturin develop --skip-install --release
+rye test
+cargo run --bin run_perf_test --release
 ```
 
-Time to move on to the next stage!
+## Codecrafters
 
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `python (3.8+)` installed locally
-1. Run `./your_sqlite3.sh` to run your program, which is implemented in
-   `app/main.py`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
-
-# Sample Databases
+### Sample Databases
 
 To make it easy to test queries locally, we've added a sample database in the
 root of this repository: `sample.db`.

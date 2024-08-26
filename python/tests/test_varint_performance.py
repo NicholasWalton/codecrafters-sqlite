@@ -1,68 +1,101 @@
 import itertools
+from mmap import mmap, ACCESS_READ
+
+import codecrafters_sqlite._lowlevel
+import pytest
 from pathlib import Path
 from timeit import timeit
 
-import pytest
+SQLITE_I64_VARINT_LENGTH = 9
 
-from codecrafters_sqlite._lowlevel import decode_varint as rust_decode_varint
+NUMBER = 1000
 
-
-def main():
-    print(f"Python: {test_python()} sec")
-    print(f"Rust:   {test_rust()} sec")
-
-
-def test_python():
-    setup = "from codecrafters_sqlite.varint import decode_varint"
-    nine_byte_varints(setup)
-
-
-def test_rust():
-    setup = "from codecrafters_sqlite._lowlevel import decode_varint"
-    nine_byte_varints(setup)
+test_cases = (
+    "decoder_to_test",
+    (
+        pytest.param(codecrafters_sqlite.varint.decode_varint, id="python"),
+        pytest.param(codecrafters_sqlite._lowlevel.decode_varint, id="rust"),
+    ),
+)
 
 
 @pytest.fixture()
 def varint_file(tmp_path):
-    bytes_to_write = b"".join(buffer for buffer in generate_bytes())
-    (tmp_path / "varints.bin").write_bytes(bytes_to_write)
-    return tmp_path / "varints.bin"
+    tmp_file = tmp_path / "varints.bin"
+    bytes_to_write = b"".join(buffer for buffer in generate_varints())
+    tmp_file.write_bytes(bytes_to_write)
+    return tmp_file
 
 
-def test_read_file(varint_file: Path):
-    contents = varint_file.read_bytes()
-    assert not (len(contents) % 9)
-    assert len(contents) == 9 * 0xFF
-
-    # Assert the 9th byte is 0 because the first time in our iterator it definitely
-    # should be 0
-    assert contents[8] == 0
-
-    for expected, read_bytes in enumerate(itertools.batched(contents, 9)):
-        value, length = rust_decode_varint(read_bytes)
-        assert value == expected
-        assert length == 9
-
-
-def generate_bytes():
+def generate_varints():
     for low_byte in range(0, 0xFF):  # 0 -> 255
         yield bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
 
 
-def nine_byte_varints(setup):
-    stmt = """
-for low_byte in range(0, 0xFF):
-    buffer = bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
-    value, length = decode_varint(buffer)
-    assert low_byte == value
-    assert length == 9
-"""
-    return timeit(
-        stmt,
-        setup,
-        number=1000,
+@pytest.mark.parametrize(*test_cases)
+def test_read_bytes(varint_file: Path, decoder_to_test):
+    timeit(lambda: assert_read_bytes(varint_file, decoder_to_test), number=NUMBER)
+
+
+def assert_read_bytes(varint_file, decoder_to_test):
+    contents = varint_file.read_bytes()
+    assert not (len(contents) % SQLITE_I64_VARINT_LENGTH)
+    assert len(contents) == SQLITE_I64_VARINT_LENGTH * 0xFF
+    # Assert the 9th byte is 0 because the first time in our iterator it definitely
+    # should be 0
+    assert contents[SQLITE_I64_VARINT_LENGTH - 1] == 0
+    for expected, read_bytes in enumerate(itertools.batched(contents, SQLITE_I64_VARINT_LENGTH)):
+        assert_decode(read_bytes, decoder_to_test, expected)
+
+
+@pytest.mark.parametrize(*test_cases)
+def test_mmap(varint_file, decoder_to_test):
+    timeit(
+        lambda: assert_mmap(varint_file=varint_file, decoder_to_test=decoder_to_test),
+        number=NUMBER,
     )
 
 
+@pytest.mark.parametrize(*test_cases)
+def test_short_mmap(varint_file, decoder_to_test):
+    slice_and_decode = lambda varint_mmap: decoder_to_test(varint_mmap[:SQLITE_I64_VARINT_LENGTH + 1])
+    timeit(
+        lambda: assert_mmap(
+            varint_file=varint_file,
+            decoder_to_test=slice_and_decode,
+        ),
+        number=NUMBER,
+    )
+
+
+def assert_mmap(varint_file, decoder_to_test):
+    with open(varint_file, "rb") as varint_file:
+        varint_mmap = mmap(varint_file.fileno(), 0, access=ACCESS_READ)
+        varint_mmap = varint_mmap[:]  # Rust impl expects a slice every time
+        for low_byte in range(0, 0xFF):  # 0 -> 255
+            length = assert_decode(varint_mmap, decoder_to_test, low_byte)
+            varint_mmap = varint_mmap[length:]
+
+
+@pytest.mark.parametrize(*test_cases)
+def test_in_memory(decoder_to_test):
+    timeit(
+        lambda: assert_nine_byte_varints(decoder_to_test),
+        number=NUMBER,
+    )
+
+
+def assert_nine_byte_varints(decoder_to_test):
+    for buffer in generate_varints():
+        assert_decode(buffer, decoder_to_test, buffer[-1])
+
+
+def assert_decode(buffer, decoder_to_test, expected):
+    value, length = decoder_to_test(buffer)
+    assert expected == value
+    assert length == SQLITE_I64_VARINT_LENGTH
+    return length
+
+
 if __name__ == "__main__":
-    pytest.pytest()
+    pytest.main(args=[__file__, "--durations=0"])
