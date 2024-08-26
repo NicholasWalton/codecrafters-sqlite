@@ -45,7 +45,7 @@ def assert_read_bytes(varint_file, decoder_to_test):
     # should be 0
     assert contents[SQLITE_I64_VARINT_LENGTH - 1] == 0
     for expected, read_bytes in enumerate(itertools.batched(contents, SQLITE_I64_VARINT_LENGTH)):
-        assert_decode(read_bytes, decoder_to_test, expected)
+        assert_decode(bytearray(read_bytes), decoder_to_test, expected)
 
 
 @pytest.mark.parametrize(*test_cases)

@@ -1,9 +1,11 @@
+use std::borrow::Cow;
+
 use pyo3::prelude::*;
 
 const HUFFMAN_LENGTH: usize = 9;
 
 #[pyfunction]
-fn decode_varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
+fn decode_varint(buffer: Cow<'_, [u8]>) -> PyResult<(i64, usize)> {
     let mut acc = 0i64;
 
     let byte_index = decode_leading_bytes(&buffer, &mut acc);
@@ -20,7 +22,7 @@ fn decode_varint(buffer: Vec<u8>) -> PyResult<(i64, usize)> {
     }
 }
 
-fn decode_leading_bytes(buffer: &Vec<u8>, acc: &mut i64) -> usize {
+fn decode_leading_bytes(buffer: &Cow<'_, [u8]>, acc: &mut i64) -> usize {
     // zero or more bytes which have the high-order bit set
     for byte_index in 0..HUFFMAN_LENGTH - 1 {
         // The lower seven bits of each of the first n-1 byte
