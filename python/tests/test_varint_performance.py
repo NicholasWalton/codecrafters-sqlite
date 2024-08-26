@@ -32,7 +32,6 @@ def generate_varints():
         yield bytearray((0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, low_byte))
 
 
-# Theory: Rust is slower here because we pass in `bytes` instead of `bytearray`, leading to a copy
 @pytest.mark.parametrize(*test_cases)
 def test_read_bytes(varint_file: Path, decoder_to_test):
     timeit(lambda: assert_read_bytes(varint_file, decoder_to_test), number=NUMBER)
@@ -53,7 +52,7 @@ def assert_read_bytes(varint_file, decoder_to_test):
 def test_mmap(varint_file, decoder_to_test):
     timeit(
         lambda: assert_mmap(varint_file=varint_file, decoder_to_test=decoder_to_test),
-        number=100,
+        number=NUMBER,
     )
 
 
@@ -64,7 +63,7 @@ def test_short_mmap(varint_file, decoder_to_test):
             varint_file=varint_file,
             decoder_to_test=lambda varint_mmap: decoder_to_test(varint_mmap[:SQLITE_I64_VARINT_LENGTH + 1]),
         ),
-        number=100,
+        number=NUMBER,
     )
 
 
