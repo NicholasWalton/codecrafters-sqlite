@@ -1,7 +1,7 @@
 import pytest
 
-from app import cells
-from app.cells import TableLeafCell, DecodeError
+from codecrafters_sqlite import cells
+from codecrafters_sqlite.cells import TableLeafCell, DecodeError
 
 
 @pytest.mark.parametrize(

@@ -1,15 +1,26 @@
-[build-system]
-requires = ["maturin>=1.7,<2.0"]
-build-backend = "maturin"
-
 [project]
 name = "codecrafters-sqlite"
-requires-python = ">=3.8"
-classifiers = [
-    "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Anna Hope", email = "catchall@annahope.me" }
 ]
-dynamic = ["version"]
+dependencies = []
+readme = "README.md"
+requires-python = ">= 3.12"
+
+[build-system]
+requires = ["maturin>=1.2,<2.0"]
+build-backend = "maturin"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "pytest>=8.3.2",
+    "pytest-profiling>=1.7.0",
+]
+
 [tool.maturin]
+python-source = "python"
+module-name = "codecrafters_sqlite._lowlevel"
 features = ["pyo3/extension-module"]

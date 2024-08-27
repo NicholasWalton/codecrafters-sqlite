@@ -1,10 +1,11 @@
 import pytest
 
-from app.varint import varint
+from codecrafters_sqlite.varint import decode_varint
+from codecrafters_sqlite._lowlevel import decode_varint as rust_decode_varint
 
 
 def huffman_decode(buffer, huffman_length=9):
-    value, _ = varint(buffer, huffman_length)
+    value, _ = decode_varint(buffer, huffman_length)
     return value
 
 
@@ -82,7 +83,7 @@ def test_min_huffman(huffman_length):
 
 @pytest.mark.parametrize("varint_length", range(2, 10))
 def test_min_varint(varint_length):
-    _, length = varint(min_varint(varint_length), varint_length)
+    _, length = decode_varint(min_varint(varint_length), varint_length)
     assert length == varint_length
 
 
@@ -94,19 +95,37 @@ def min_varint(huffman_length):
 
 @pytest.mark.parametrize("varint_length", range(2, 10))
 def test_zero_varint(varint_length):
-    _, length = varint(bytearray((0b0000_0000,)), varint_length)
+    _, length = decode_varint(bytearray((0b0000_0000,)), varint_length)
     assert length == 1
 
 
 @pytest.mark.parametrize("low_byte", range(0, 127))
 def test_problem_varint(low_byte):
-    value, length = varint(bytearray((0x81, low_byte, 0xB5, ord("n"), 0x0C)))
+    value, length = decode_varint(bytearray((0x81, low_byte, 0xB5, ord("n"), 0x0C)))
     assert length == 2
     assert value == 0x80 + low_byte
 
 
 @pytest.mark.parametrize("low_byte", range(0, 127))
 def test_ok_varint(low_byte):
-    value, length = varint(bytearray((0x80, low_byte, 0xB5, ord("n"), 0x0C)))
+    value, length = decode_varint(bytearray((0x80, low_byte, 0xB5, ord("n"), 0x0C)))
+    assert length == 2
+    assert value == low_byte
+
+
+@pytest.mark.parametrize("low_byte", range(0, 127))
+def test_rust_problem_varint(low_byte):
+    value, length = rust_decode_varint(
+        bytearray((0x81, low_byte, 0xB5, ord("n"), 0x0C))
+    )
+    assert length == 2
+    assert value == 0x80 + low_byte
+
+
+@pytest.mark.parametrize("low_byte", range(0, 127))
+def test_rust_ok_varint(low_byte):
+    value, length = rust_decode_varint(
+        bytearray((0x80, low_byte, 0xB5, ord("n"), 0x0C))
+    )
     assert length == 2
     assert value == low_byte

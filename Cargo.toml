@@ -6,7 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "codecrafters_sqlite"
-crate-type = ["cdylib"]
+crate-type = [
+    "cdylib",
+    "lib",
+]
 
-[dependencies]
-pyo3 = "0.22.0"
+[profile.release]
+debug = true
+
+[[bin]]
+name = "run_perf_test"
+path = "src/run_perf_test.rs"
+
+[dependencies.pyo3]
+version = "0.22.0"
+features = ["auto-initialize", "gil-refs"]

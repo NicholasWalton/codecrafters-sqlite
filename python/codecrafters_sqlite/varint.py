@@ -1,7 +1,7 @@
 VARINT_LENGTH = 9
 
 
-def varint(buffer, huffman_length=VARINT_LENGTH):
+def decode_varint(buffer, huffman_length=VARINT_LENGTH):
     unsigned = 0
 
     for byte_index in range(
