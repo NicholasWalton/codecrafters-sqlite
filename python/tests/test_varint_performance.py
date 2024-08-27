@@ -44,28 +44,23 @@ def assert_read_bytes(varint_file, decoder_to_test):
     # Assert the 9th byte is 0 because the first time in our iterator it definitely
     # should be 0
     assert contents[SQLITE_I64_VARINT_LENGTH - 1] == 0
-    for expected, read_bytes in enumerate(itertools.batched(contents, SQLITE_I64_VARINT_LENGTH)):
+    for expected, read_bytes in enumerate(
+            itertools.batched(contents, SQLITE_I64_VARINT_LENGTH)
+    ):
         assert_decode(bytearray(read_bytes), decoder_to_test, expected)
 
 
 @pytest.mark.parametrize(*test_cases)
 def test_mmap(varint_file, decoder_to_test):
-    timeit(
-        lambda: assert_mmap(varint_file=varint_file, decoder_to_test=decoder_to_test),
-        number=NUMBER,
-    )
+    timeit(lambda: assert_mmap(varint_file, decoder_to_test), number=NUMBER)
 
 
 @pytest.mark.parametrize(*test_cases)
 def test_short_mmap(varint_file, decoder_to_test):
-    slice_and_decode = lambda varint_mmap: decoder_to_test(varint_mmap[:SQLITE_I64_VARINT_LENGTH + 1])
-    timeit(
-        lambda: assert_mmap(
-            varint_file=varint_file,
-            decoder_to_test=slice_and_decode,
-        ),
-        number=NUMBER,
-    )
+    def slice_and_decode(varint_mmap):
+        return decoder_to_test(varint_mmap[: SQLITE_I64_VARINT_LENGTH + 1])
+
+    timeit(lambda: assert_mmap(varint_file, slice_and_decode), number=NUMBER)
 
 
 def assert_mmap(varint_file, decoder_to_test):
@@ -79,10 +74,7 @@ def assert_mmap(varint_file, decoder_to_test):
 
 @pytest.mark.parametrize(*test_cases)
 def test_in_memory(decoder_to_test):
-    timeit(
-        lambda: assert_nine_byte_varints(decoder_to_test),
-        number=NUMBER,
-    )
+    timeit(lambda: assert_nine_byte_varints(decoder_to_test), number=NUMBER)
 
 
 def assert_nine_byte_varints(decoder_to_test):
