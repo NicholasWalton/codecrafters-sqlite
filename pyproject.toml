@@ -17,10 +17,10 @@ build-backend = "maturin"
 managed = true
 dev-dependencies = [
     "pytest>=8.3.2",
+    "pytest-profiling>=1.7.0",
 ]
 
 [tool.maturin]
 python-source = "python"
 module-name = "codecrafters_sqlite._lowlevel"
 features = ["pyo3/extension-module"]
-

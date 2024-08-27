@@ -11,6 +11,9 @@ crate-type = [
     "lib",
 ]
 
+[profile.release]
+debug = true
+
 [[bin]]
 name = "run_perf_test"
 path = "src/run_perf_test.rs"
