@@ -10,11 +10,14 @@ SQLITE_I64_VARINT_LENGTH = 9
 
 NUMBER = 1000
 
+_python_decoder = codecrafters_sqlite.varint.decode_varint
+_rust_decoder = codecrafters_sqlite._lowlevel.decode_varint
+
 test_cases = (
     "decoder_to_test",
     (
-        pytest.param(codecrafters_sqlite.varint.decode_varint, id="python"),
-        pytest.param(codecrafters_sqlite._lowlevel.decode_varint, id="rust"),
+        pytest.param(_python_decoder, id="python"),
+        pytest.param(_rust_decoder, id="rust"),
     ),
 )
 
@@ -44,28 +47,47 @@ def assert_read_bytes(varint_file, decoder_to_test):
     # Assert the 9th byte is 0 because the first time in our iterator it definitely
     # should be 0
     assert contents[SQLITE_I64_VARINT_LENGTH - 1] == 0
-    for expected, read_bytes in enumerate(itertools.batched(contents, SQLITE_I64_VARINT_LENGTH)):
+    for expected, read_bytes in enumerate(
+            itertools.batched(contents, SQLITE_I64_VARINT_LENGTH)
+    ):
         assert_decode(bytearray(read_bytes), decoder_to_test, expected)
 
 
 @pytest.mark.parametrize(*test_cases)
 def test_mmap(varint_file, decoder_to_test):
-    timeit(
-        lambda: assert_mmap(varint_file=varint_file, decoder_to_test=decoder_to_test),
-        number=NUMBER,
+    time_assert_mmap(varint_file, decoder_to_test)
+
+
+def test_rust_is_faster(varint_file):
+    rust_time, python_time = (
+        time_assert_mmap(varint_file, decoder)
+        for decoder in (_rust_decoder, _python_decoder)
     )
+    assert rust_time < python_time
 
 
 @pytest.mark.parametrize(*test_cases)
 def test_short_mmap(varint_file, decoder_to_test):
-    slice_and_decode = lambda varint_mmap: decoder_to_test(varint_mmap[:SQLITE_I64_VARINT_LENGTH + 1])
-    timeit(
-        lambda: assert_mmap(
-            varint_file=varint_file,
-            decoder_to_test=slice_and_decode,
-        ),
-        number=NUMBER,
+    time_assert_mmap(varint_file, decoder_to_test, _slice)
+
+
+def test_rust_is_faster_on_slice(varint_file):
+    rust_time, python_time = (
+        time_assert_mmap(varint_file, decoder, _slice)
+        for decoder in (_rust_decoder, _python_decoder)
     )
+    assert rust_time < python_time
+
+
+def _slice(varint_mmap):
+    return varint_mmap[: SQLITE_I64_VARINT_LENGTH + 1]
+
+
+def time_assert_mmap(varint_file, decoder_to_test, treatment=lambda x: x):
+    def decoder(varint_mmap):
+        return decoder_to_test(treatment(varint_mmap))
+
+    return timeit(lambda: assert_mmap(varint_file, decoder), number=NUMBER)
 
 
 def assert_mmap(varint_file, decoder_to_test):
@@ -79,10 +101,7 @@ def assert_mmap(varint_file, decoder_to_test):
 
 @pytest.mark.parametrize(*test_cases)
 def test_in_memory(decoder_to_test):
-    timeit(
-        lambda: assert_nine_byte_varints(decoder_to_test),
-        number=NUMBER,
-    )
+    timeit(lambda: assert_nine_byte_varints(decoder_to_test), number=NUMBER)
 
 
 def assert_nine_byte_varints(decoder_to_test):
